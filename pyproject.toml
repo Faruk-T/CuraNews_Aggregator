@@ -1,0 +1,39 @@
+[project]
+name = "curanews"
+version = "0.1.0"
+description = "Social-media and web-backed dynamic news aggregator (CuraNews)"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { text = "Proprietary" }
+authors = [
+    { name = "Faruk-T" }
+]
+keywords = ["news", "aggregator", "scrapy", "fastapi", "nlp"]
+
+[project.scripts]
+curanews = "curanews.__main__:main"
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [{ include = "curanews", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.14"
+
+[tool.poetry.group.dev.dependencies]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
