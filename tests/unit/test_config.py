@@ -1,7 +1,5 @@
 """Tests for Settings loading and defaults."""
 
-import os
-
 from curanews.config import Settings, get_settings
 
 
