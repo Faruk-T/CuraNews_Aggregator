@@ -20,7 +20,7 @@ def main() -> None:
         __version__,
         settings.app_env,
     )
-    print(f"{settings.app_name} — ready (day 2)")
+    print(f"{settings.app_name} - ready (day 2)")
     print(f"package: curanews v{__version__}")
     print(f"env: {settings.app_env} | log_level: {settings.log_level}")
 
