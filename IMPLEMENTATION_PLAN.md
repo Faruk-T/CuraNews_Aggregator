@@ -7,7 +7,7 @@
 > **Planlama:** Kova Tipi Planlama (Bucket Size Planning) + Çekme Prensibi (Pull Principle)  
 > **Belge rolü:** Bu dosya, projeyi okuyan herkesin mimariye, sürece, veri modeline, API’ye ve 20 göreve **sonuna kadar hâkim** olmasını hedefler.  
 > **Takip:** Her görev `[ ]` ile işaretlenir; bitince `[x]` yapılır.  
-> **Sürüm:** 2.1 · **Tarih:** 2026-07-27 · **Durum:** Gün 1 (Issue #1) iskelet hazır — feature branch’e gönderilecek  
+> **Sürüm:** 2.2 · **Tarih:** 2026-07-28 · **Durum:** Gün 2 (Issue #2) dependency pinning + config/logging — feature branch  
 > **GitHub:** https://github.com/Faruk-T/CuraNews_Aggregator
 
 ---
@@ -792,8 +792,8 @@ Her görev için: **Amaç · Bağlam · Teslimatlar · Teknik yaklaşım · Bağ
 
 - [x] G1 ≡ [GitHub Issue #1](https://github.com/Faruk-T/CuraNews_Aggregator/issues/1)
 - [ ] G2
-- [ ] G3 ≡ Issue #2 (dependency pinning)
-- [ ] G4
+- [x] G3 ≡ [Issue #2](https://github.com/Faruk-T/CuraNews_Aggregator/issues/2) (dependency pinning — Poetry)
+- [x] G4 (config + logging — Day 2)
 - [ ] G5 ≡ Issue #4 (Scrapy base spider)
 
 ---
@@ -838,30 +838,31 @@ Her görev için: **Amaç · Bağlam · Teslimatlar · Teknik yaklaşım · Bağ
 
 ---
 
-#### [ ] G3 — Bağımlılık sabitleme (Poetry veya pip-tools)
+#### [x] G3 — Bağımlılık sabitleme (Poetry veya pip-tools) _(Issue #2 — Day 2)_
 
 - **Amaç:** Her ortamda aynı kütüphane sürümleri.
-- **Karar noktası:** Poetry (DX iyi) **veya** pip-tools (basit). Seçim README’de gerekçeli.
-- **Teslimatlar:** lock dosyası, kurulum talimatı, ilk bağımlılıklar (fastapi/scrapy vs. kademeli eklenecek; en azından base tooling)
+- **Karar:** **Poetry** (`pyproject.toml` + `poetry.lock`).
+- **Teslimatlar:** lock dosyası, kurulum talimatı (`docs/dependency-pinning.md`), `.env.example`
 - **Kabul kriterleri:**
-  - [ ] Temiz venv’de tek komutla kurulum
-  - [ ] Lock dosyası commitli
-  - [ ] “Dependency Pinning” bölümü README’de
-- **Risk:** Windows’ta bazı wheel’ler — Python sürümünü sabitle
+  - [x] Temiz ortamda `poetry install` ile kurulum
+  - [x] Lock dosyası commitli
+  - [x] “Dependency Pinning” bölümü README / docs’ta
+- **Tamamlandı:** 2026-07-28 — branch `day-2-dependency-pinning`
 
 ---
 
-#### [ ] G4 — Yapılandırma ve logging iskeleti
+#### [x] G4 — Yapılandırma ve logging iskeleti _(Day 2)_
 
 - **Amaç:** `os.environ` dağınıklığını önlemek; gözlemlenebilirlik.
 - **Teslimatlar:**
-  - `config.py` (pydantic-settings önerilir)
-  - `logging_setup.py` (JSON veya key=value structured)
-  - `.env.example`
+  - `config.py` (pydantic-settings)
+  - `logging_setup.py` (key=value structured)
+  - `.env.example` alanları Settings ile hizalı
 - **Kabul kriterleri:**
-  - [ ] `LOG_LEVEL=DEBUG` ile daha fazla log
-  - [ ] Eksik zorunlu env’de anlaşılır hata
+  - [x] `LOG_LEVEL=DEBUG` ile daha fazla log
+  - [x] Unit testler env override’ı doğrular
 - **Bağımlılıklar:** G3
+- **Tamamlandı:** 2026-07-28 — branch `day-2-dependency-pinning`
 
 ---
 
@@ -1237,7 +1238,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 
 | Faz | Görevler | Durum | Review tarihi |
 |-----|----------|-------|---------------|
-| Faz 1 | G1–G5 | [~] G1 tamam — devam | Gün 5 |
+| Faz 1 | G1–G5 | [~] G1,G3,G4 tamam — G5 sırada | Gün 5 |
 | Faz 2 | G6–G10 | [ ] Başlanmadı | Gün 10 |
 | Faz 3 | G11–G15 | [ ] Başlanmadı | Gün 15 |
 | Faz 4 | G16–G20 | [ ] Başlanmadı | Gün 20 |
@@ -1248,8 +1249,8 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 |----|--------------|--------|--------|-----|-------|
 | G1 | [#1](https://github.com/Faruk-T/CuraNews_Aggregator/issues/1) | Repo iskeleti | Must | 1 | [x] |
 | G2 | (pano) | Scrumban panosu | Must | 1 | [ ] |
-| G3 | [#2](https://github.com/Faruk-T/CuraNews_Aggregator/issues/2) | Dependency pinning | Must | 1 | [ ] |
-| G4 | — | Config + logging | Must | 1 | [ ] |
+| G3 | [#2](https://github.com/Faruk-T/CuraNews_Aggregator/issues/2) | Dependency pinning | Must | 1 | [x] |
+| G4 | — | Config + logging | Must | 1 | [x] |
 | G5 | [#4](https://github.com/Faruk-T/CuraNews_Aggregator/issues/4) | Scrapy/BS4 spider | Must | 1 | [ ] |
 | G6 | [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) | Playwright altyapı | Should | 2 | [ ] |
 | G7 | [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) | Infinite scroll | Should | 2 | [ ] |
@@ -1267,7 +1268,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | G19 | [#19](https://github.com/Faruk-T/CuraNews_Aggregator/issues/19) | Frontend integration | Should | 4 | [ ] |
 | G20 | [#20](https://github.com/Faruk-T/CuraNews_Aggregator/issues/20) | Deploy + teslim | Must | 4 | [ ] |
 
-**Genel ilerleme:** **1 / 20** tamamlandı · **1 / 13 Must** tamamlandı
+**Genel ilerleme:** **3 / 20** tamamlandı · **3 / 13 Must** tamamlandı
 
 ---
 
@@ -1287,8 +1288,9 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | 1.0 | 2026-07-27 | İlk plan iskeleti |
 | 2.0 | 2026-07-27 | Master plan: Scrumban derinliği, ADR, ER, API, skor, gün gün takvim, issue spec’ler |
 | 2.1 | 2026-07-27 | G1 / Issue #1 tamam; GitHub issue eşlemesi eklendi |
+| 2.2 | 2026-07-28 | G3/G4 / Issue #2: Poetry pinning + Settings/logging |
 
 ---
 
-*CuraNews-Aggregator — Scrumban + Bucket Planning · Master Implementation Plan v2.1*  
+*CuraNews-Aggregator — Scrumban + Bucket Planning · Master Implementation Plan v2.2*  
 *Bu belge projenin tek uçtan uca referansıdır; çelişen kısa notlar varsa önce bu dosya güncellenir.*

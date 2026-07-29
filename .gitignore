@@ -61,6 +61,11 @@ coverage.xml
 Thumbs.db
 Desktop.ini
 
+# Poetry / local venv
+.venv/
+poetry.toml.bak
+
+
 # Scrapy
 .scrapy/
 
