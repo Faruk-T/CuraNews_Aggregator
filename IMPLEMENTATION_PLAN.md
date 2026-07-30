@@ -7,7 +7,7 @@
 > **Planlama:** Kova Tipi Planlama (Bucket Size Planning) + Çekme Prensibi (Pull Principle)  
 > **Belge rolü:** Bu dosya, projeyi okuyan herkesin mimariye, sürece, veri modeline, API’ye ve 20 göreve **sonuna kadar hâkim** olmasını hedefler.  
 > **Takip:** Her görev `[ ]` ile işaretlenir; bitince `[x]` yapılır.  
-> **Sürüm:** 2.2 · **Tarih:** 2026-07-28 · **Durum:** Gün 2 (Issue #2) dependency pinning + config/logging — feature branch  
+> **Sürüm:** 2.4 · **Tarih:** 2026-07-30 · **Durum:** Gün 4 (Issue #4) Scrapy base spider — feature branch  
 > **GitHub:** https://github.com/Faruk-T/CuraNews_Aggregator
 
 ---
@@ -794,7 +794,7 @@ Her görev için: **Amaç · Bağlam · Teslimatlar · Teknik yaklaşım · Bağ
 - [ ] G2
 - [x] G3 ≡ [Issue #2](https://github.com/Faruk-T/CuraNews_Aggregator/issues/2) (dependency pinning — Poetry)
 - [x] G4 (config + logging — Day 2)
-- [ ] G5 ≡ Issue #4 (Scrapy base spider)
+- [x] G5 ≡ [Issue #4](https://github.com/Faruk-T/CuraNews_Aggregator/issues/4) (Scrapy base spider — Day 4)
 
 ---
 
@@ -866,21 +866,24 @@ Her görev için: **Amaç · Bağlam · Teslimatlar · Teknik yaklaşım · Bağ
 
 ---
 
-#### [ ] G5 — Scrapy + BeautifulSoup statik spider
+#### [x] G5 — Scrapy + BeautifulSoup statik spider _(Issue #4 — Day 4)_
 
 - **Amaç:** İlk gerçek veri kazıma dikeyi.
 - **Teslimatlar:**
-  - Scrapy proje/spider
-  - BS4 parse helper
-  - Örnek çıktı fixture’si (`tests/fixtures/sample_listing.html` yedek)
-  - `docs/sources.md` içinde kaynak kaydı
-- **Teknik yaklaşım:** Önce izinli/basit bir haber listesi veya lokal fixture; production site kırılırsa fixture ile DoD korunur.
+  - Scrapy `example_news` spider + `BaseNewsSpider`
+  - BS4 parse helper (`parse_bs4.py`)
+  - Fixture: `tests/fixtures/example_news_listing.html`
+  - `scripts/run_scrape.py` → JSONL çıktı
+  - AutoThrottle + DOWNLOAD_DELAY settings
+  - `docs/sources.md` / `docs/scraping.md`
+- **Teknik yaklaşım:** Offline-safe HTML fixture; live URL opsiyonel `-a start_url=`.
 - **Kabul kriterleri:**
-  - [ ] En az 3 madde: `title`, `url`, `summary|None`
-  - [ ] Çıktı JSON Lines veya stdout dump
-- **Bağımlılıklar:** G3, G4
+  - [x] En az 3 madde: `title`, `url`, content/summary
+  - [x] Çıktı JSON Lines (`data/local/scraped_news.jsonl`)
+  - [x] AutoThrottle açık, DOWNLOAD_DELAY ≥ 1s
+- **Bağımlılıklar:** G3, G4, Issue #3 item şeması
+- **Tamamlandı:** 2026-07-30 — branch `day-4-scrapy-base-spider`
 - **Faz 1 çıkış kapısı:** Bu görev Done olmadan Faz 2’ye geçilmez (Must).
-
 ---
 
 ### Faz 2 — Acquisition & Resilience  
@@ -1238,7 +1241,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 
 | Faz | Görevler | Durum | Review tarihi |
 |-----|----------|-------|---------------|
-| Faz 1 | G1–G5 | [~] G1,G3,G4 tamam — G5 sırada | Gün 5 |
+| Faz 1 | G1–G5 | [~] G1,G3,G4,G5 + Issue #3 tamam — Faz 1 çıkışa yakın | Gün 5 |
 | Faz 2 | G6–G10 | [ ] Başlanmadı | Gün 10 |
 | Faz 3 | G11–G15 | [ ] Başlanmadı | Gün 15 |
 | Faz 4 | G16–G20 | [ ] Başlanmadı | Gün 20 |
@@ -1251,7 +1254,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | G2 | (pano) | Scrumban panosu | Must | 1 | [ ] |
 | G3 | [#2](https://github.com/Faruk-T/CuraNews_Aggregator/issues/2) | Dependency pinning | Must | 1 | [x] |
 | G4 | — | Config + logging | Must | 1 | [x] |
-| G5 | [#4](https://github.com/Faruk-T/CuraNews_Aggregator/issues/4) | Scrapy/BS4 spider | Must | 1 | [ ] |
+| G5 | [#4](https://github.com/Faruk-T/CuraNews_Aggregator/issues/4) | Scrapy/BS4 spider | Must | 1 | [x] |
 | G6 | [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) | Playwright altyapı | Should | 2 | [ ] |
 | G7 | [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) | Infinite scroll | Should | 2 | [ ] |
 | G8 | [#8](https://github.com/Faruk-T/CuraNews_Aggregator/issues/8)/adapter | SourceAdapter | Must | 2 | [ ] |
@@ -1268,7 +1271,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | G19 | [#19](https://github.com/Faruk-T/CuraNews_Aggregator/issues/19) | Frontend integration | Should | 4 | [ ] |
 | G20 | [#20](https://github.com/Faruk-T/CuraNews_Aggregator/issues/20) | Deploy + teslim | Must | 4 | [ ] |
 
-**Genel ilerleme:** **3 / 20** tamamlandı · **3 / 13 Must** tamamlandı
+**Genel ilerleme:** **5 / 20** tamamlandı (G1,G3,G4,G5 + Issue #3 şema) · Must çekirdeği güçlendi
 
 ---
 
@@ -1289,8 +1292,9 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | 2.0 | 2026-07-27 | Master plan: Scrumban derinliği, ADR, ER, API, skor, gün gün takvim, issue spec’ler |
 | 2.1 | 2026-07-27 | G1 / Issue #1 tamam; GitHub issue eşlemesi eklendi |
 | 2.2 | 2026-07-28 | G3/G4 / Issue #2: Poetry pinning + Settings/logging |
+| 2.4 | 2026-07-30 | G5 / Issue #4: Scrapy example_news spider, AutoThrottle, BS4 parser |
 
 ---
 
-*CuraNews-Aggregator — Scrumban + Bucket Planning · Master Implementation Plan v2.2*  
+*CuraNews-Aggregator — Scrumban + Bucket Planning · Master Implementation Plan v2.4*  
 *Bu belge projenin tek uçtan uca referansıdır; çelişen kısa notlar varsa önce bu dosya güncellenir.*
