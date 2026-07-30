@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from itemadapter import ItemAdapter
+from scrapy.crawler import Crawler
 
 from curanews.scrapers.validators import IncompleteNewsItemError, assert_news_item_complete
 
@@ -10,10 +11,19 @@ from curanews.scrapers.validators import IncompleteNewsItemError, assert_news_it
 class NewsItemValidationPipeline:
     """Drop / fail incomplete items before any persistence stage."""
 
-    def process_item(self, item, spider):  # noqa: ANN001
+    def __init__(self, crawler: Crawler | None = None) -> None:
+        self.crawler = crawler
+
+    @classmethod
+    def from_crawler(cls, crawler: Crawler) -> NewsItemValidationPipeline:
+        return cls(crawler)
+
+    def process_item(self, item):  # noqa: ANN001
         try:
             assert_news_item_complete(ItemAdapter(item).asdict())
         except IncompleteNewsItemError:
-            spider.logger.warning("dropping incomplete item: %s", dict(item))
+            spider = self.crawler.spider if self.crawler is not None else None
+            if spider is not None:
+                spider.logger.warning("dropping incomplete item: %s", dict(item))
             raise
         return item
