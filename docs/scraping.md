@@ -14,7 +14,8 @@ poetry run python scripts/run_scrape.py
 poetry run scrapy crawl example_news -s ROBOTSTXT_OBEY=False
 ```
 
-Output: `data/local/scraped_news.jsonl` (gitignored).
+Output: `data/local/scraped_news.jsonl` (gitignored) and SQLite rows via Issue #5 pipelines
+(`data/local/curanews.sqlite3`). See [`pipeline.md`](./pipeline.md).
 
 ### Polite settings
 
