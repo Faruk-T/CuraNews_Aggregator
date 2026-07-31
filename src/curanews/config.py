@@ -28,7 +28,11 @@ class Settings(BaseSettings):
 
     database_url: str = Field(
         default="postgresql+psycopg://curanews:curanews@localhost:5432/curanews",
-        description="SQLAlchemy database URL (PostgreSQL).",
+        description="SQLAlchemy database URL (PostgreSQL — Phase 3).",
+    )
+    sqlite_path: str = Field(
+        default="data/local/curanews.sqlite3",
+        description="SQLite path used by Scrapy pipelines (Issue #5).",
     )
     redis_url: str = Field(
         default="redis://localhost:6379/0",
