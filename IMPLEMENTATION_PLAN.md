@@ -7,7 +7,7 @@
 > **Planlama:** Kova Tipi Planlama (Bucket Size Planning) + Çekme Prensibi (Pull Principle)  
 > **Belge rolü:** Bu dosya, projeyi okuyan herkesin mimariye, sürece, veri modeline, API’ye ve 20 göreve **sonuna kadar hâkim** olmasını hedefler.  
 > **Takip:** Her görev `[ ]` ile işaretlenir; bitince `[x]` yapılır.  
-> **Sürüm:** 2.4 · **Tarih:** 2026-07-30 · **Durum:** Gün 4 (Issue #4) Scrapy base spider — feature branch  
+> **Sürüm:** 2.5 · **Tarih:** 2026-07-31 · **Durum:** Gün 5 (Issue #5) SQLite pipeline + dedupe — commit kullanıcıda  
 > **GitHub:** https://github.com/Faruk-T/CuraNews_Aggregator
 
 ---
@@ -1241,7 +1241,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 
 | Faz | Görevler | Durum | Review tarihi |
 |-----|----------|-------|---------------|
-| Faz 1 | G1–G5 | [~] G1,G3,G4,G5 + Issue #3 tamam — Faz 1 çıkışa yakın | Gün 5 |
+| Faz 1 | G1–G5 | [x] Faz 1 kazıma dikeyi + SQLite pipeline (Issue #5) — review/retro | Gün 5 |
 | Faz 2 | G6–G10 | [ ] Başlanmadı | Gün 10 |
 | Faz 3 | G11–G15 | [ ] Başlanmadı | Gün 15 |
 | Faz 4 | G16–G20 | [ ] Başlanmadı | Gün 20 |
@@ -1255,6 +1255,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | G3 | [#2](https://github.com/Faruk-T/CuraNews_Aggregator/issues/2) | Dependency pinning | Must | 1 | [x] |
 | G4 | — | Config + logging | Must | 1 | [x] |
 | G5 | [#4](https://github.com/Faruk-T/CuraNews_Aggregator/issues/4) | Scrapy/BS4 spider | Must | 1 | [x] |
+| — | [#5](https://github.com/Faruk-T/CuraNews_Aggregator/issues/5) | SQLite pipeline + dedupe | Must | 1 | [x] (Day 5, commit pending) |
 | G6 | [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) | Playwright altyapı | Should | 2 | [ ] |
 | G7 | [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) | Infinite scroll | Should | 2 | [ ] |
 | G8 | [#8](https://github.com/Faruk-T/CuraNews_Aggregator/issues/8)/adapter | SourceAdapter | Must | 2 | [ ] |
@@ -1271,7 +1272,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | G19 | [#19](https://github.com/Faruk-T/CuraNews_Aggregator/issues/19) | Frontend integration | Should | 4 | [ ] |
 | G20 | [#20](https://github.com/Faruk-T/CuraNews_Aggregator/issues/20) | Deploy + teslim | Must | 4 | [ ] |
 
-**Genel ilerleme:** **5 / 20** tamamlandı (G1,G3,G4,G5 + Issue #3 şema) · Must çekirdeği güçlendi
+**Genel ilerleme:** **6 izlenen iş** (G1,G3,G4,G5 + Issue #3 + Issue #5) · Faz 1 dikeyi SQLite’a kadar tamam
 
 ---
 
@@ -1293,8 +1294,9 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | 2.1 | 2026-07-27 | G1 / Issue #1 tamam; GitHub issue eşlemesi eklendi |
 | 2.2 | 2026-07-28 | G3/G4 / Issue #2: Poetry pinning + Settings/logging |
 | 2.4 | 2026-07-30 | G5 / Issue #4: Scrapy example_news spider, AutoThrottle, BS4 parser |
+| 2.5 | 2026-07-31 | Issue #5: clean->validate->dedupe->SQLite pipelines |
 
 ---
 
-*CuraNews-Aggregator — Scrumban + Bucket Planning · Master Implementation Plan v2.4*  
+*CuraNews-Aggregator — Scrumban + Bucket Planning · Master Implementation Plan v2.5*  
 *Bu belge projenin tek uçtan uca referansıdır; çelişen kısa notlar varsa önce bu dosya güncellenir.*
