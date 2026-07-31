@@ -8,7 +8,7 @@ Social-media and web-backed dynamic news aggregator (internship project, 20 days
 
 | Phase | Focus | Progress |
 |-------|--------|----------|
-| Phase 1 | Setup, Scrapy skeleton, early pipeline | In progress (Day 4) |
+| Phase 1 | Setup, Scrapy skeleton, early pipeline | In progress (Day 5) |
 | Phase 2 | Playwright, backoff, async fetch | Not started |
 | Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | Not started |
 | Phase 4 | REST API, frontend, tests, release | Not started |
@@ -25,6 +25,7 @@ poetry install
 poetry run python -m curanews
 poetry run pytest
 poetry run python scripts/run_scrape.py
+poetry run python scripts/inspect_db.py
 ```
 
 Copy `.env.example` → `.env` for local overrides (never commit `.env`).
@@ -32,13 +33,15 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - Dependency pinning: [`docs/dependency-pinning.md`](./docs/dependency-pinning.md)
 - Data model: [`docs/data-model.md`](./docs/data-model.md)
 - Scraping: [`docs/scraping.md`](./docs/scraping.md)
+- Pipeline / SQLite: [`docs/pipeline.md`](./docs/pipeline.md)
 
 ## Issues completed
 
 - [x] [#1](https://github.com/Faruk-T/CuraNews_Aggregator/issues/1) Project skeleton
 - [x] [#2](https://github.com/Faruk-T/CuraNews_Aggregator/issues/2) Dependency pinning
 - [x] [#3](https://github.com/Faruk-T/CuraNews_Aggregator/issues/3) News item / data models
-- [ ] [#4](https://github.com/Faruk-T/CuraNews_Aggregator/issues/4) Scrapy base spider (Day 4 branch)
+- [x] [#4](https://github.com/Faruk-T/CuraNews_Aggregator/issues/4) Scrapy base spider
+- [ ] [#5](https://github.com/Faruk-T/CuraNews_Aggregator/issues/5) SQLite pipeline + dedupe (Day 5 branch)
 
 ## Planned layout
 

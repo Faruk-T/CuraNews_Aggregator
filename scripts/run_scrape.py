@@ -1,9 +1,9 @@
-"""Run the Day 4 example Scrapy spider and print item counts.
+"""Run the example Scrapy spider, export JSONL, and persist to SQLite.
 
 Usage (from repo root)::
 
     poetry run python scripts/run_scrape.py
-    poetry run python scripts/run_scrape.py --start-url file:///...
+    poetry run python scripts/run_scrape.py --sqlite data/local/demo.sqlite3
 """
 
 from __future__ import annotations
@@ -15,6 +15,8 @@ from pathlib import Path
 
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
+
+from curanews.db import SqliteArticleStore
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -29,10 +31,17 @@ def main(argv: list[str] | None = None) -> int:
         default="data/local/scraped_news.jsonl",
         help="JSON Lines output path",
     )
+    parser.add_argument(
+        "--sqlite",
+        default="data/local/curanews.sqlite3",
+        help="SQLite database path for pipeline persistence",
+    )
     args = parser.parse_args(argv)
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    sqlite_path = Path(args.sqlite)
+    sqlite_path.parent.mkdir(parents=True, exist_ok=True)
 
     settings = get_project_settings()
     settings.set(
@@ -47,8 +56,8 @@ def main(argv: list[str] | None = None) -> int:
         },
         priority="cmdline",
     )
-    # Local fixture demos should not wait on robots.txt for file://
     settings.set("ROBOTSTXT_OBEY", False, priority="cmdline")
+    settings.set("SQLITE_PATH", str(sqlite_path), priority="cmdline")
 
     process = CrawlerProcess(settings)
     crawl_kwargs = {}
@@ -66,6 +75,16 @@ def main(argv: list[str] | None = None) -> int:
     if lines:
         sample = json.loads(lines[0])
         print(f"sample_title={sample.get('title')!r}")
+
+    store = SqliteArticleStore(sqlite_path)
+    try:
+        print(f"sqlite_rows={store.count()} sqlite_path={sqlite_path}")
+        recent = store.list_recent(limit=3)
+        for row in recent:
+            print(f"db_title={row.title!r} category={row.category}")
+    finally:
+        store.close()
+
     return 0 if lines else 1
 
 

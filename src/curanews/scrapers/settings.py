@@ -1,4 +1,6 @@
-"""Scrapy settings for CuraNews (Issue #4 — polite crawl defaults)."""
+"""Scrapy settings for CuraNews (Issues #4–#5)."""
+
+from pathlib import Path
 
 BOT_NAME = "curanews"
 
@@ -11,7 +13,6 @@ CONCURRENT_REQUESTS = 2
 CONCURRENT_REQUESTS_PER_DOMAIN = 1
 DOWNLOAD_DELAY = 1.0
 
-# AutoThrottle: adapt request rate to server response latency (Issue #4)
 AUTOTHROTTLE_ENABLED = True
 AUTOTHROTTLE_START_DELAY = 1.0
 AUTOTHROTTLE_MAX_DELAY = 10.0
@@ -24,8 +25,14 @@ DEFAULT_REQUEST_HEADERS = {
     "User-Agent": "CuraNewsBot/0.1 (+https://github.com/Faruk-T/CuraNews_Aggregator)",
 }
 
+# Issue #5 — post-process then persist
 ITEM_PIPELINES = {
-    "curanews.scrapers.pipelines.NewsItemValidationPipeline": 100,
+    "curanews.scrapers.pipelines.NewsItemCleaningPipeline": 100,
+    "curanews.scrapers.pipelines.NewsItemValidationPipeline": 200,
+    "curanews.scrapers.pipelines.NewsItemDeduplicationPipeline": 300,
+    "curanews.scrapers.pipelines.SqlitePersistPipeline": 400,
 }
+
+SQLITE_PATH = str(Path("data/local/curanews.sqlite3"))
 
 LOG_LEVEL = "INFO"
