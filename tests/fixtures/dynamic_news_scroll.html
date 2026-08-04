@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>DynamicNews — Infinite Scroll Demo</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 1rem; }
+    #feed { min-height: 2000px; }
+    .news-card { border-bottom: 1px solid #ddd; padding: 1rem 0; }
+  </style>
+</head>
+<body>
+  <h1>DynamicNews Feed</h1>
+  <p>Scroll to load more cards (Playwright Day 6 fixture).</p>
+  <div id="feed"></div>
+
+  <script>
+    const ALL = [
+      {
+        category: "economy",
+        published: "2026-08-01T09:00:00+00:00",
+        href: "/news/markets-open-higher",
+        title: "Markets open higher after policy hints",
+        summary: "Investors reacted positively to overnight policy signals."
+      },
+      {
+        category: "tech",
+        published: "2026-08-01T10:00:00+00:00",
+        href: "/news/edge-ai-devices-ship",
+        title: "Edge AI devices begin shipping",
+        summary: "Hardware vendors started limited retail availability this week."
+      },
+      {
+        category: "sports",
+        published: "2026-08-01T11:00:00+00:00",
+        href: "/news/derby-night-thriller",
+        title: "Derby night ends in late thriller",
+        summary: "A stoppage-time goal decided the city derby."
+      },
+      {
+        category: "science",
+        published: "2026-08-01T12:00:00+00:00",
+        href: "/news/glacier-survey-update",
+        title: "Glacier survey shows accelerated melt",
+        summary: "Researchers published mid-season ice thickness measurements."
+      },
+      {
+        category: "culture",
+        published: "2026-08-01T13:00:00+00:00",
+        href: "/news/festival-lineup-drop",
+        title: "Festival lineup drop surprises fans",
+        summary: "Organizers revealed a broader cross-genre bill for autumn."
+      },
+      {
+        category: "health",
+        published: "2026-08-01T14:00:00+00:00",
+        href: "/news/sleep-study-findings",
+        title: "Sleep study findings reshape advice",
+        summary: "A multi-city study linked consistent schedules to better outcomes."
+      }
+    ];
+
+    const feed = document.getElementById("feed");
+    let nextIndex = 0;
+    const BATCH = 2;
+
+    function addBatch() {
+      const slice = ALL.slice(nextIndex, nextIndex + BATCH);
+      slice.forEach((item) => {
+        const article = document.createElement("article");
+        article.className = "news-card";
+        article.dataset.category = item.category;
+        article.dataset.published = item.published;
+        article.innerHTML =
+          '<a class="news-title" href="' + item.href + '">' + item.title + "</a>" +
+          '<p class="news-summary">' + item.summary + "</p>";
+        feed.appendChild(article);
+      });
+      nextIndex += slice.length;
+    }
+
+    // Initial visible cards (static-looking), more appear after scroll.
+    addBatch();
+
+    window.addEventListener("scroll", () => {
+      const nearBottom =
+        window.innerHeight + window.scrollY >= document.body.offsetHeight - 80;
+      if (nearBottom && nextIndex < ALL.length) {
+        addBatch();
+      }
+    });
+  </script>
+</body>
+</html>
