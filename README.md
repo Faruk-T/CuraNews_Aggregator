@@ -8,8 +8,8 @@ Social-media and web-backed dynamic news aggregator (internship project, 20 days
 
 | Phase | Focus | Progress |
 |-------|--------|----------|
-| Phase 1 | Setup, Scrapy skeleton, early pipeline | In progress (Day 5) |
-| Phase 2 | Playwright, backoff, async fetch | Not started |
+| Phase 1 | Setup, Scrapy skeleton, early pipeline | Complete (Days 1–5) |
+| Phase 2 | Playwright, backoff, async fetch | In progress (Day 6) |
 | Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | Not started |
 | Phase 4 | REST API, frontend, tests, release | Not started |
 
@@ -22,10 +22,12 @@ Requires **Python 3.11–3.13** and [Poetry](https://python-poetry.org/).
 ```powershell
 python -m pip install poetry
 poetry install
+poetry run playwright install chromium
 poetry run python -m curanews
 poetry run pytest
 poetry run python scripts/run_scrape.py
 poetry run python scripts/inspect_db.py
+poetry run python scripts/run_playwright_scrape.py
 ```
 
 Copy `.env.example` → `.env` for local overrides (never commit `.env`).
@@ -34,6 +36,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - Data model: [`docs/data-model.md`](./docs/data-model.md)
 - Scraping: [`docs/scraping.md`](./docs/scraping.md)
 - Pipeline / SQLite: [`docs/pipeline.md`](./docs/pipeline.md)
+- Playwright: [`docs/playwright-scraping.md`](./docs/playwright-scraping.md)
 
 ## Issues completed
 
@@ -41,7 +44,8 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - [x] [#2](https://github.com/Faruk-T/CuraNews_Aggregator/issues/2) Dependency pinning
 - [x] [#3](https://github.com/Faruk-T/CuraNews_Aggregator/issues/3) News item / data models
 - [x] [#4](https://github.com/Faruk-T/CuraNews_Aggregator/issues/4) Scrapy base spider
-- [ ] [#5](https://github.com/Faruk-T/CuraNews_Aggregator/issues/5) SQLite pipeline + dedupe (Day 5 branch)
+- [x] [#5](https://github.com/Faruk-T/CuraNews_Aggregator/issues/5) SQLite pipeline + dedupe
+- [ ] [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) Playwright dynamic scrape (Day 6 branch)
 
 ## Planned layout
 

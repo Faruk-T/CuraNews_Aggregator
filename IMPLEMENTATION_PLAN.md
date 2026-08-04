@@ -7,7 +7,7 @@
 > **Planlama:** Kova Tipi Planlama (Bucket Size Planning) + Çekme Prensibi (Pull Principle)  
 > **Belge rolü:** Bu dosya, projeyi okuyan herkesin mimariye, sürece, veri modeline, API’ye ve 20 göreve **sonuna kadar hâkim** olmasını hedefler.  
 > **Takip:** Her görev `[ ]` ile işaretlenir; bitince `[x]` yapılır.  
-> **Sürüm:** 2.5 · **Tarih:** 2026-07-31 · **Durum:** Gün 5 (Issue #5) SQLite pipeline + dedupe — commit kullanıcıda  
+> **Sürüm:** 2.6 · **Tarih:** 2026-08-04 · **Durum:** Gün 6 (Issue #6) Playwright dynamic scrape — commit kullanıcıda  
 > **GitHub:** https://github.com/Faruk-T/CuraNews_Aggregator
 
 ---
@@ -1242,7 +1242,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | Faz | Görevler | Durum | Review tarihi |
 |-----|----------|-------|---------------|
 | Faz 1 | G1–G5 | [x] Faz 1 kazıma dikeyi + SQLite pipeline (Issue #5) — review/retro | Gün 5 |
-| Faz 2 | G6–G10 | [ ] Başlanmadı | Gün 10 |
+| Faz 2 | G6–G10 | [~] Issue #6 Playwright (Day 6) — Issue #7 sırada | Gün 10 |
 | Faz 3 | G11–G15 | [ ] Başlanmadı | Gün 15 |
 | Faz 4 | G16–G20 | [ ] Başlanmadı | Gün 20 |
 
@@ -1256,7 +1256,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | G4 | — | Config + logging | Must | 1 | [x] |
 | G5 | [#4](https://github.com/Faruk-T/CuraNews_Aggregator/issues/4) | Scrapy/BS4 spider | Must | 1 | [x] |
 | — | [#5](https://github.com/Faruk-T/CuraNews_Aggregator/issues/5) | SQLite pipeline + dedupe | Must | 1 | [x] (Day 5, commit pending) |
-| G6 | [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) | Playwright altyapı | Should | 2 | [ ] |
+| G6 | [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) | Playwright altyapı | Should | 2 | [x] (Day 6, commit pending) |
 | G7 | [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) | Infinite scroll | Should | 2 | [ ] |
 | G8 | [#8](https://github.com/Faruk-T/CuraNews_Aggregator/issues/8)/adapter | SourceAdapter | Must | 2 | [ ] |
 | G9 | [#7](https://github.com/Faruk-T/CuraNews_Aggregator/issues/7) | Exp. backoff | Must | 2 | [ ] |
@@ -1295,8 +1295,9 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | 2.2 | 2026-07-28 | G3/G4 / Issue #2: Poetry pinning + Settings/logging |
 | 2.4 | 2026-07-30 | G5 / Issue #4: Scrapy example_news spider, AutoThrottle, BS4 parser |
 | 2.5 | 2026-07-31 | Issue #5: clean->validate->dedupe->SQLite pipelines |
+| 2.6 | 2026-08-04 | Issue #6: Playwright async + infinite scroll fixture |
 
 ---
 
-*CuraNews-Aggregator — Scrumban + Bucket Planning · Master Implementation Plan v2.5*  
+*CuraNews-Aggregator — Scrumban + Bucket Planning · Master Implementation Plan v2.6*  
 *Bu belge projenin tek uçtan uca referansıdır; çelişen kısa notlar varsa önce bu dosya güncellenir.*

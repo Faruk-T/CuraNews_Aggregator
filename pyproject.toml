@@ -50,6 +50,8 @@ ruff = "^0.9.0"
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-q"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 100
