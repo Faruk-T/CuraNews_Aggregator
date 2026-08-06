@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Literal
 
 import pytest
@@ -17,8 +16,7 @@ from curanews.scrapers.adapters import (
     parse_gnews_payload,
 )
 from curanews.scrapers.adapters.static_fixture import StaticFixtureAdapter
-
-FIXTURE_JSON = Path(__file__).resolve().parent / "fixtures" / "gnews_sample.json"
+from curanews.scrapers.validators import promote_draft
 
 
 class FakeAdapter:
@@ -32,10 +30,14 @@ class FakeAdapter:
             RawArticleDraft(
                 title="Fake headline",
                 url="https://example.com/fake/1",
-                content="Body text for fake adapter.",
+                content="Body text for fake adapter with full optional fields.",
+                summary="Short summary for fake adapter.",
                 published_date=datetime(2026, 8, 6, tzinfo=timezone.utc),
                 source="fake_unit",
                 category="test",
+                author="Fake Author",
+                language="en",
+                metadata={"image_url": "https://example.com/fake.jpg", "provider": "unit_test"},
             )
         ][:limit]
 
@@ -44,15 +46,35 @@ def test_ingest_from_adapter_works_for_fake_and_static() -> None:
     fake_articles = ingest_from_adapter(FakeAdapter(), limit=5)
     assert len(fake_articles) == 1
     assert fake_articles[0].title == "Fake headline"
+    assert fake_articles[0].author == "Fake Author"
+    assert fake_articles[0].language == "en"
 
     static_articles = ingest_from_adapter(StaticFixtureAdapter(), limit=5)
     assert len(static_articles) >= 1
 
 
-def test_parse_gnews_fixture_file() -> None:
-    drafts = load_gnews_fixture(FIXTURE_JSON)
+def test_static_fixture_adapter_fetch_includes_author_and_body() -> None:
+    drafts = StaticFixtureAdapter().fetch(limit=1)
+    assert drafts[0].author
+    assert drafts[0].language
+    assert len(drafts[0].content) > len(drafts[0].summary or "")
+    article = promote_draft(drafts[0])
+    assert article.author
+    assert article.language
+
+
+def test_parse_gnews_fixture_file_populates_optional_fields() -> None:
+    from pathlib import Path
+
+    fixture_json = Path(__file__).resolve().parent / "fixtures" / "gnews_sample.json"
+    drafts = load_gnews_fixture(fixture_json)
     assert len(drafts) == 2
-    assert drafts[0].title.startswith("Fixture headline")
+    article = promote_draft(drafts[0])
+    assert article.author == "Dr. Ayşe Kaya"
+    assert article.language == "en"
+    assert article.category == "technology"
+    assert article.metadata.get("image_url")
+    assert article.metadata.get("source_url")
 
 
 def test_parse_gnews_payload_skips_incomplete_rows() -> None:

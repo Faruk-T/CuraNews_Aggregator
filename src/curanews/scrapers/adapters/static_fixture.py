@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Literal
 
 from curanews.domain.models import RawArticleDraft
+from curanews.scrapers.adapters.mapping import draft_from_listing_entries
 from curanews.scrapers.adapters._paths import fixture_path
 from curanews.scrapers.parse_bs4 import parse_example_listing
 
@@ -27,18 +28,7 @@ class StaticFixtureAdapter:
             base_url="https://example.com/",
             source=self.source_id,
         )
-        return [
-            RawArticleDraft(
-                title=e.title,
-                url=e.url,
-                content=e.summary,
-                summary=e.summary,
-                published_date=e.published_date,
-                source=e.source,
-                category=e.category,
-            )
-            for e in entries[:limit]
-        ]
+        return draft_from_listing_entries(entries, limit=limit)
 
     def _resolve_fixture(self) -> Path:
         if self._html_path and self._html_path.is_file():

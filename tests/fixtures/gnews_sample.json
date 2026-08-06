@@ -4,17 +4,32 @@
     {
       "title": "Fixture headline: quantum networking milestone",
       "description": "Offline sample article for CuraNews API adapter tests.",
-      "content": "Researchers demonstrated entanglement distribution across a metropolitan testbed using standard fiber.",
+      "content": "Researchers demonstrated entanglement distribution across a metropolitan testbed using standard fiber. The trial sustained qubit links for twelve hours with error rates below prior benchmarks.",
       "url": "https://example.com/news/quantum-network-2026",
+      "image": "https://example.com/media/quantum-network.jpg",
       "publishedAt": "2026-08-01T09:15:00Z",
-      "source": { "name": "TechWire Fixture" }
+      "lang": "en",
+      "author": "Dr. Ayşe Kaya",
+      "category": "technology",
+      "source": {
+        "name": "TechWire Fixture",
+        "url": "https://example.com/techwire"
+      }
     },
     {
       "title": "Fixture headline: regional energy grid update",
       "description": "Second sample row to verify multi-article parsing.",
+      "content": "Grid operators published a summer load forecast and confirmed two substation upgrades will finish before peak demand in September.",
       "url": "https://example.com/news/grid-update-2026",
+      "image": "https://example.com/media/grid-update.jpg",
       "publishedAt": "2026-08-02T14:30:00+00:00",
-      "source": { "name": "Energy Daily" }
+      "lang": "tr",
+      "author": "Mehmet Yılmaz",
+      "category": "business",
+      "source": {
+        "name": "Energy Daily",
+        "url": "https://example.com/energy-daily"
+      }
     }
   ]
 }

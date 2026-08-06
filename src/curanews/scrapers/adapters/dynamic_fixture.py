@@ -7,6 +7,7 @@ from typing import Literal
 
 from curanews.browser.dynamic_listing import fetch_dynamic_listing, fixture_file_url
 from curanews.domain.models import RawArticleDraft
+from curanews.scrapers.adapters.mapping import draft_from_listing_entries
 
 
 class DynamicFixtureAdapter:
@@ -25,15 +26,4 @@ class DynamicFixtureAdapter:
                 min_items=min(limit, 4),
             )
         )
-        return [
-            RawArticleDraft(
-                title=e.title,
-                url=e.url,
-                content=e.summary,
-                summary=e.summary,
-                published_date=e.published_date,
-                source=e.source,
-                category=e.category,
-            )
-            for e in entries[:limit]
-        ]
+        return draft_from_listing_entries(entries, limit=limit)

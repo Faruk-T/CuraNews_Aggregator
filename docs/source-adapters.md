@@ -52,6 +52,14 @@ poetry run python scripts/fetch_sources.py --adapter dynamic --promote --output 
 
 Live API: set `NEWS_API_KEY` in `.env`. HTTP uses Day 7 `call_with_backoff`.
 
+## Field mapping (full drafts)
+
+**GNews JSON:** `title`, `url`, `content`, `description`, `publishedAt`, `category`, `author`, `lang`, `image`, `source.name`, `source.url`.
+
+**Static HTML cards:** `data-category`, `data-published`, `data-author`, `data-language`, `data-image`, `.news-summary`, `.news-body`.
+
+Optional fields flow into `RawArticleDraft` and survive `promote_draft()` → `NewsArticle` (`summary`, `author`, `language`, `metadata`).
+
 ## Related
 
 - [`scraping.md`](./scraping.md)

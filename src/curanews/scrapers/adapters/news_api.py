@@ -17,7 +17,7 @@ def parse_gnews_payload(
     source_id: str = "gnews_api",
     default_category: str = "general",
 ) -> list[RawArticleDraft]:
-    """Map ``{ "articles": [...] }`` JSON to ``RawArticleDraft`` rows."""
+    """Map ``{ "articles": [...] }`` JSON to fully populated ``RawArticleDraft`` rows."""
     articles = payload.get("articles") or []
     drafts: list[RawArticleDraft] = []
 
@@ -31,10 +31,24 @@ def parse_gnews_payload(
         description = _text(row.get("description"))
         content = _text(row.get("content")) or description or title
         published = _parse_datetime(row.get("publishedAt"))
+        category = _text(row.get("category")) or default_category
+        author = _text(row.get("author"))
+        language = _text(row.get("lang") or row.get("language"))
+
         source_name = source_id
+        source_url: str | None = None
         nested = row.get("source")
-        if isinstance(nested, dict) and nested.get("name"):
-            source_name = f"{source_id}:{_text(nested.get('name'))}"
+        if isinstance(nested, dict):
+            if nested.get("name"):
+                source_name = f"{source_id}:{_text(nested.get('name'))}"
+            source_url = _text(nested.get("url"))
+
+        metadata: dict[str, Any] = {"provider": "gnews_compatible"}
+        image = _text(row.get("image"))
+        if image:
+            metadata["image_url"] = image
+        if source_url:
+            metadata["source_url"] = source_url
 
         drafts.append(
             RawArticleDraft(
@@ -44,8 +58,10 @@ def parse_gnews_payload(
                 summary=description or content[:500],
                 published_date=published,
                 source=source_name,
-                category=default_category,
-                metadata={"provider": "gnews_compatible"},
+                category=category,
+                author=author,
+                language=language,
+                metadata=metadata,
             )
         )
     return drafts

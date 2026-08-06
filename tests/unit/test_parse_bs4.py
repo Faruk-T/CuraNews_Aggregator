@@ -19,6 +19,10 @@ def test_parse_example_listing_extracts_four_cards():
     assert entries[0].title.startswith("Markets rally")
     assert entries[0].url == "https://example.com/news/markets-rally-on-rate-cut-hopes"
     assert entries[0].category == "economy"
+    assert entries[0].author == "Elena Brooks"
+    assert entries[0].language == "en"
+    assert entries[0].body
+    assert entries[0].metadata.get("image_url")
     assert entries[0].published_date.tzinfo is not None
     assert entries[0].published_date.tzinfo.utcoffset(entries[0].published_date) == timezone.utc.utcoffset(
         entries[0].published_date
