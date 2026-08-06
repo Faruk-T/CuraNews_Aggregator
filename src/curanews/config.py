@@ -45,6 +45,15 @@ class Settings(BaseSettings):
     scrape_backoff_base: float = Field(default=0.5, gt=0)
     scrape_concurrency: int = Field(default=2, ge=1)
 
+    news_api_key: str = Field(
+        default="",
+        description="GNews-compatible API key (Issue #8). Empty = offline fixture.",
+    )
+    news_api_base_url: str = Field(
+        default="https://gnews.io/api/v4/top-headlines",
+        description="Base URL for JSON headline API.",
+    )
+
     api_host: str = "0.0.0.0"
     api_port: int = Field(default=8000, ge=1, le=65535)
 
