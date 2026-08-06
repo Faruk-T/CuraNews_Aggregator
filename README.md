@@ -9,7 +9,7 @@ Social-media and web-backed dynamic news aggregator (internship project, 20 days
 | Phase | Focus | Progress |
 |-------|--------|----------|
 | Phase 1 | Setup, Scrapy skeleton, early pipeline | Complete (Days 1–5) |
-| Phase 2 | Playwright, backoff, async fetch | In progress (Day 6) |
+| Phase 2 | Playwright, backoff, async fetch | In progress (Day 7) |
 | Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | Not started |
 | Phase 4 | REST API, frontend, tests, release | Not started |
 
@@ -37,6 +37,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - Scraping: [`docs/scraping.md`](./docs/scraping.md)
 - Pipeline / SQLite: [`docs/pipeline.md`](./docs/pipeline.md)
 - Playwright: [`docs/playwright-scraping.md`](./docs/playwright-scraping.md)
+- Resilience / backoff: [`docs/resilience.md`](./docs/resilience.md)
 
 ## Issues completed
 
@@ -45,7 +46,8 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - [x] [#3](https://github.com/Faruk-T/CuraNews_Aggregator/issues/3) News item / data models
 - [x] [#4](https://github.com/Faruk-T/CuraNews_Aggregator/issues/4) Scrapy base spider
 - [x] [#5](https://github.com/Faruk-T/CuraNews_Aggregator/issues/5) SQLite pipeline + dedupe
-- [ ] [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) Playwright dynamic scrape (Day 6 branch)
+- [x] [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) Playwright dynamic scrape
+- [x] [#7](https://github.com/Faruk-T/CuraNews_Aggregator/issues/7) Exponential backoff
 
 ## Planned layout
 
