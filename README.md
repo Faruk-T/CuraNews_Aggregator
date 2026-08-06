@@ -9,7 +9,7 @@ Social-media and web-backed dynamic news aggregator (internship project, 20 days
 | Phase | Focus | Progress |
 |-------|--------|----------|
 | Phase 1 | Setup, Scrapy skeleton, early pipeline | Complete (Days 1–5) |
-| Phase 2 | Playwright, backoff, source adapters | In progress (Day 8) |
+| Phase 2 | Playwright, backoff, adapters, async parallel | In progress (Day 9) |
 | Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | Not started |
 | Phase 4 | REST API, frontend, tests, release | Not started |
 
@@ -29,6 +29,7 @@ poetry run python scripts/run_scrape.py
 poetry run python scripts/inspect_db.py
 poetry run python scripts/run_playwright_scrape.py
 poetry run python scripts/fetch_sources.py --adapter api --promote
+poetry run python scripts/run_parallel_fetch.py --adapters static,api
 ```
 
 Copy `.env.example` → `.env` for local overrides (never commit `.env`).
@@ -40,6 +41,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - Playwright: [`docs/playwright-scraping.md`](./docs/playwright-scraping.md)
 - Resilience / backoff: [`docs/resilience.md`](./docs/resilience.md)
 - Source adapters: [`docs/source-adapters.md`](./docs/source-adapters.md)
+- Async parallel fetch: [`docs/async-parallel-fetch.md`](./docs/async-parallel-fetch.md)
 
 ## Issues completed
 
@@ -50,7 +52,8 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - [x] [#5](https://github.com/Faruk-T/CuraNews_Aggregator/issues/5) SQLite pipeline + dedupe
 - [x] [#6](https://github.com/Faruk-T/CuraNews_Aggregator/issues/6) Playwright dynamic scrape
 - [x] [#7](https://github.com/Faruk-T/CuraNews_Aggregator/issues/7) Exponential backoff
-- [ ] [#8](https://github.com/Faruk-T/CuraNews_Aggregator/issues/8) SourceAdapter + news API (Day 8 branch)
+- [x] [#8](https://github.com/Faruk-T/CuraNews_Aggregator/issues/8) SourceAdapter + news API
+- [ ] [#9](https://github.com/Faruk-T/CuraNews_Aggregator/issues/9) Async parallel fetch (Day 9 branch)
 
 ## Planned layout
 
