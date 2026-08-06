@@ -1,0 +1,20 @@
+{
+  "totalArticles": 2,
+  "articles": [
+    {
+      "title": "Fixture headline: quantum networking milestone",
+      "description": "Offline sample article for CuraNews API adapter tests.",
+      "content": "Researchers demonstrated entanglement distribution across a metropolitan testbed using standard fiber.",
+      "url": "https://example.com/news/quantum-network-2026",
+      "publishedAt": "2026-08-01T09:15:00Z",
+      "source": { "name": "TechWire Fixture" }
+    },
+    {
+      "title": "Fixture headline: regional energy grid update",
+      "description": "Second sample row to verify multi-article parsing.",
+      "url": "https://example.com/news/grid-update-2026",
+      "publishedAt": "2026-08-02T14:30:00+00:00",
+      "source": { "name": "Energy Daily" }
+    }
+  ]
+}
