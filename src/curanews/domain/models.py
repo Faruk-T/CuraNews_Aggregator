@@ -70,4 +70,5 @@ class RawArticleDraft(BaseModel):
     category: str | None = None
     summary: str | None = None
     author: str | None = None
+    language: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
