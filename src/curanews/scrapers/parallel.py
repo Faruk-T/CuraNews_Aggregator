@@ -10,7 +10,9 @@ from dataclasses import dataclass
 
 from curanews.config import get_settings
 from curanews.domain.models import NewsArticle, RawArticleDraft
+from curanews.ingestion.cleaning import clean_raw_draft
 from curanews.scrapers.adapters.base import SourceAdapter, adapter_label
+from curanews.scrapers.policy import assert_concurrency_polite
 from curanews.scrapers.validators import IncompleteNewsItemError, promote_draft
 
 logger = logging.getLogger("curanews.scrapers.parallel")
@@ -67,7 +69,7 @@ async def _fetch_one(
             articles: list[NewsArticle] = []
             for draft in drafts:
                 try:
-                    articles.append(promote_draft(draft))
+                    articles.append(promote_draft(clean_raw_draft(draft)))
                 except IncompleteNewsItemError:
                     continue
             elapsed = time.perf_counter() - started
@@ -112,7 +114,7 @@ async def ingest_adapters_parallel(
     ``SCRAPE_CONCURRENCY`` (default 2).
     """
     settings = get_settings()
-    workers = max(1, concurrency or settings.scrape_concurrency)
+    workers = assert_concurrency_polite(concurrency or settings.scrape_concurrency)
     semaphore = asyncio.Semaphore(workers)
     wall_start = time.perf_counter()
     results = await asyncio.gather(
