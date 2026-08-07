@@ -11,6 +11,7 @@ import httpx
 from curanews.config import get_settings
 from curanews.domain.models import RawArticleDraft
 from curanews.resilience import BackoffPolicy, call_with_backoff
+from curanews.scrapers.policy import assert_url_allowed
 from curanews.scrapers.adapters.news_api import load_gnews_fixture, parse_gnews_payload
 
 logger = logging.getLogger("curanews.adapters.news_api")
@@ -45,6 +46,7 @@ class NewsApiAdapter:
             "apikey": self.api_key,
         }
         url = f"{self.base_url}?{urlencode(params)}"
+        assert_url_allowed(url)
 
         def _request() -> dict:
             with httpx.Client(timeout=30.0) as client:

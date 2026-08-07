@@ -1,6 +1,8 @@
-"""Scrapy settings for CuraNews (Issues #4–#5)."""
+"""Scrapy settings for CuraNews (Issues #4–#5, #10)."""
 
 from pathlib import Path
+
+from curanews.scrapers.policy import user_agent
 
 BOT_NAME = "curanews"
 
@@ -22,7 +24,7 @@ AUTOTHROTTLE_DEBUG = False
 DEFAULT_REQUEST_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "en,tr;q=0.9",
-    "User-Agent": "CuraNewsBot/0.1 (+https://github.com/Faruk-T/CuraNews_Aggregator)",
+    "User-Agent": user_agent(),
 }
 
 # Issue #5 — post-process then persist
