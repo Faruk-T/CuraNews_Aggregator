@@ -1,16 +1,26 @@
-# Allowed sources
+# Allowed sources (Issue #10 / G10)
 
-Document each crawl target here before enabling it in code.
+Document each crawl target here **before** enabling it in code or `.env`.
 
-| Source key | Kind | Base URL | robots respected | Notes | Enabled |
-|------------|------|----------|------------------|-------|---------|
-| `example_news` | static | fixture `tests/fixtures/example_news_listing.html` | n/a (local file) | Day 4 demo spider; offline-safe | yes (demo) |
-| `dynamic_demo` | dynamic | fixture `tests/fixtures/dynamic_news_scroll.html` | n/a (local file) | Day 6 Playwright infinite-scroll demo | yes (demo) |
+| Source key | Kind | Base URL / host | robots respected | Notes | Enabled |
+|------------|------|-----------------|------------------|-------|---------|
+| `example_news` | static | `example.com` (fixture file) | n/a (local file) | Day 4 demo spider | yes (demo) |
+| `dynamic_demo` | dynamic | `file://` scroll fixture | n/a (local file) | Day 6 Playwright demo | yes (demo) |
+| `gnews_api` | api | `gnews.io` | provider ToS | Offline JSON if no API key | yes (demo) |
 
-## Policy
+## Allowlist env
 
-- Public / permitted content only.
-- No login wall or CAPTCHA bypass.
-- Default concurrency ≤ 2.
-- User-Agent: `CuraNewsBot/0.1 (+https://github.com/Faruk-T/CuraNews_Aggregator)`
-- Prefer fixture/demo markup before hitting live sites during internship demos.
+```env
+SCRAPE_ALLOWLIST_HOSTS=example.com,gnews.io,localhost,127.0.0.1
+```
+
+Add a host only after legal/ToS review and mentor sign-off.
+
+## Policy checklist
+
+- Public / permitted content only
+- No login wall or CAPTCHA bypass
+- Default concurrency ≤ 2 (`SCRAPE_CONCURRENCY`)
+- Identifying User-Agent (`SCRAPE_USER_AGENT`)
+- Prefer fixtures before live sites during internship demos
+- HTML noise stripped before `NewsArticle` promotion (`clean_raw_draft`)

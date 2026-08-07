@@ -8,6 +8,8 @@ from typing import Any
 
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
+from curanews.scrapers.policy import assert_url_allowed, user_agent
+
 
 @asynccontextmanager
 async def launch_browser(
@@ -35,9 +37,7 @@ async def new_page(
     async with launch_browser(headless=headless) as browser:
         context: BrowserContext = await browser.new_context(
             viewport=viewport or {"width": 1280, "height": 720},
-            user_agent=(
-                "CuraNewsBot/0.1 (+https://github.com/Faruk-T/CuraNews_Aggregator)"
-            ),
+            user_agent=user_agent(),
         )
         page = await context.new_page()
         try:
@@ -54,6 +54,7 @@ async def fetch_rendered_html(
     headless: bool = True,
 ) -> str:
     """Open ``url`` in Chromium and return the fully rendered HTML."""
+    assert_url_allowed(url)
     async with new_page(headless=headless) as page:
         await page.goto(url, wait_until=wait_until, timeout=timeout_ms)
         return await page.content()
@@ -68,6 +69,7 @@ async def fetch_html_after(
     headless: bool = True,
 ) -> str:
     """Open ``url``, run an async ``prepare(page)`` hook, then return HTML."""
+    assert_url_allowed(url)
     async with new_page(headless=headless) as page:
         await page.goto(url, wait_until=wait_until, timeout=timeout_ms)
         await prepare(page)

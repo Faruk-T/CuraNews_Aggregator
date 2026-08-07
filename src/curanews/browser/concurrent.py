@@ -17,6 +17,7 @@ from typing import Any
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
 from curanews.config import get_settings
+from curanews.scrapers.policy import assert_concurrency_polite, assert_url_allowed, user_agent
 
 logger = logging.getLogger("curanews.browser.concurrent")
 
@@ -66,16 +67,14 @@ class ConcurrentBrowserSession:
     ) -> None:
         settings = get_settings()
         self._browser = browser
-        self.concurrency = max(1, concurrency or settings.scrape_concurrency)
+        self.concurrency = assert_concurrency_polite(concurrency or settings.scrape_concurrency)
         self.headless = headless
         self._semaphore = asyncio.Semaphore(self.concurrency)
 
     async def open_page(self) -> tuple[BrowserContext, Page]:
         context = await self._browser.new_context(
             viewport={"width": 1280, "height": 720},
-            user_agent=(
-                "CuraNewsBot/0.1 (+https://github.com/Faruk-T/CuraNews_Aggregator)"
-            ),
+            user_agent=user_agent(),
         )
         page = await context.new_page()
         return context, page
@@ -90,6 +89,7 @@ class ConcurrentBrowserSession:
     ) -> PageFetchResult:
         """Fetch one URL under the concurrency semaphore."""
         started = time.perf_counter()
+        assert_url_allowed(url)
         async with self._semaphore:
             context: BrowserContext | None = None
             try:

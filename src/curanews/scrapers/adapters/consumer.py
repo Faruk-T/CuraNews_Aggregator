@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from curanews.domain.models import NewsArticle
+from curanews.ingestion.cleaning import clean_raw_draft
 from curanews.scrapers.adapters.base import SourceAdapter
 from curanews.scrapers.validators import IncompleteNewsItemError, promote_draft
 
@@ -16,7 +17,7 @@ def ingest_from_adapter(
     articles: list[NewsArticle] = []
     for draft in adapter.fetch(limit=limit):
         try:
-            articles.append(promote_draft(draft))
+            articles.append(promote_draft(clean_raw_draft(draft)))
         except IncompleteNewsItemError:
             continue
     return articles

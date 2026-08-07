@@ -43,7 +43,15 @@ class Settings(BaseSettings):
     feed_cache_ttl_seconds: int = Field(default=120, ge=1)
     scrape_max_retries: int = Field(default=5, ge=0)
     scrape_backoff_base: float = Field(default=0.5, gt=0)
-    scrape_concurrency: int = Field(default=2, ge=1)
+    scrape_concurrency: int = Field(default=2, ge=1, le=8)
+    scrape_user_agent: str = Field(
+        default="CuraNewsBot/0.1 (+https://github.com/Faruk-T/CuraNews_Aggregator)",
+        description="Identifying User-Agent for HTTP/browser fetches (G10).",
+    )
+    scrape_allowlist_hosts: str = Field(
+        default="example.com,gnews.io,localhost,127.0.0.1",
+        description="Comma-separated hostnames permitted for outbound fetches.",
+    )
 
     news_api_key: str = Field(
         default="",
