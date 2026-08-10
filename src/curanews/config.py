@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     app_name: str = "CuraNews Aggregator"
 
     database_url: str = Field(
-        default="postgresql+psycopg://curanews:curanews@localhost:5432/curanews",
+        default="postgresql+psycopg://curanews:curanews@localhost:5433/curanews",
         description="SQLAlchemy database URL (PostgreSQL — Phase 3).",
     )
     sqlite_path: str = Field(

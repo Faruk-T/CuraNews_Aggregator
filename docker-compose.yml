@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: curanews-postgres
+    environment:
+      POSTGRES_USER: curanews
+      POSTGRES_PASSWORD: curanews
+      POSTGRES_DB: curanews
+    ports:
+      # Host 5433 avoids clash with a local PostgreSQL on Windows (127.0.0.1:5432).
+      - "5433:5432"
+    volumes:
+      - curanews_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U curanews -d curanews"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  curanews_pg_data:
