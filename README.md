@@ -9,8 +9,8 @@ Social-media and web-backed dynamic news aggregator (internship project, 20 days
 | Phase | Focus | Progress |
 |-------|--------|----------|
 | Phase 1 | Setup, Scrapy skeleton, early pipeline | Complete (Days 1–5) |
-| Phase 2 | Playwright, backoff, adapters, parallel, policy | Complete (Day 10) |
-| Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | Not started |
+| Phase 2 | Playwright, backoff, adapters, parallel, policy | Complete (Days 6–10) |
+| Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | In progress (Day 11) |
 | Phase 4 | REST API, frontend, tests, release | Not started |
 
 Tracking: [GitHub Issues](https://github.com/Faruk-T/CuraNews_Aggregator/issues) · Plan: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
@@ -31,6 +31,9 @@ poetry run python scripts/run_playwright_scrape.py
 poetry run python scripts/fetch_sources.py --adapter api --promote
 poetry run python scripts/run_parallel_fetch.py --adapters static,api
 poetry run python scripts/verify_crawl_policy.py
+docker compose up -d postgres
+poetry run alembic upgrade head
+poetry run python scripts/pg_smoke_crud.py
 ```
 
 Copy `.env.example` → `.env` for local overrides (never commit `.env`).
@@ -44,6 +47,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - Source adapters: [`docs/source-adapters.md`](./docs/source-adapters.md)
 - Async parallel fetch: [`docs/async-parallel-fetch.md`](./docs/async-parallel-fetch.md)
 - Polite crawling / cleaning: [`docs/polite-crawling.md`](./docs/polite-crawling.md)
+- PostgreSQL schema: [`docs/postgresql-schema.md`](./docs/postgresql-schema.md)
 - Allowed sources: [`docs/sources.md`](./docs/sources.md)
 
 ## Issues completed
@@ -57,7 +61,8 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - [x] [#7](https://github.com/Faruk-T/CuraNews_Aggregator/issues/7) Exponential backoff
 - [x] [#8](https://github.com/Faruk-T/CuraNews_Aggregator/issues/8) SourceAdapter + news API
 - [x] [#9](https://github.com/Faruk-T/CuraNews_Aggregator/issues/9) Async parallel fetch
-- [ ] [#10](https://github.com/Faruk-T/CuraNews_Aggregator/issues/10) Cleaning + polite crawl (Day 10 branch)
+- [x] [#10](https://github.com/Faruk-T/CuraNews_Aggregator/issues/10) Cleaning + polite crawl
+- [ ] [#11](https://github.com/Faruk-T/CuraNews_Aggregator/issues/11) PostgreSQL schema + ORM (Day 11 branch)
 
 ## Planned layout
 
