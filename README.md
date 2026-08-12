@@ -10,7 +10,7 @@ Social-media and web-backed dynamic news aggregator (internship project, 20 days
 |-------|--------|----------|
 | Phase 1 | Setup, Scrapy skeleton, early pipeline | Complete (Days 1–5) |
 | Phase 2 | Playwright, backoff, adapters, parallel, policy | Complete (Days 6–10) |
-| Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | In progress (Day 12) |
+| Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | In progress (Day 13) |
 | Phase 4 | REST API, frontend, tests, release | Not started |
 
 Tracking: [GitHub Issues](https://github.com/Faruk-T/CuraNews_Aggregator/issues) · Plan: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
@@ -36,6 +36,7 @@ poetry run alembic upgrade head
 poetry run python scripts/pg_smoke_crud.py
 docker compose up -d redis
 poetry run python scripts/verify_redis_cache.py --ttl 2
+poetry run python scripts/run_ingestion.py --adapter static
 ```
 
 Copy `.env.example` → `.env` for local overrides (never commit `.env`).
@@ -51,6 +52,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - Polite crawling / cleaning: [`docs/polite-crawling.md`](./docs/polite-crawling.md)
 - PostgreSQL schema: [`docs/postgresql-schema.md`](./docs/postgresql-schema.md)
 - Redis cache: [`docs/redis-cache.md`](./docs/redis-cache.md)
+- Ingestion pipeline: [`docs/ingestion-pipeline.md`](./docs/ingestion-pipeline.md)
 - Allowed sources: [`docs/sources.md`](./docs/sources.md)
 
 ## Issues completed
@@ -67,6 +69,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - [x] [#10](https://github.com/Faruk-T/CuraNews_Aggregator/issues/10) Cleaning + polite crawl
 - [ ] [#11](https://github.com/Faruk-T/CuraNews_Aggregator/issues/11) PostgreSQL schema + ORM (Day 11 branch)
 - [ ] [#12](https://github.com/Faruk-T/CuraNews_Aggregator/issues/12) Redis cache + scrape guard (Day 12 branch)
+- [ ] [#13](https://github.com/Faruk-T/CuraNews_Aggregator/issues/13) Ingestion pipeline + dedupe (Day 13 branch)
 
 ## Planned layout
 
