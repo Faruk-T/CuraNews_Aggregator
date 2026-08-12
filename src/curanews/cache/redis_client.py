@@ -106,6 +106,18 @@ class RedisClient:
             logger.warning("redis exists failed key=%s error=%s", key, exc)
             return False
 
+    def delete_by_prefix(self, prefix: str) -> int:
+        if not self.available:
+            return 0
+        try:
+            removed = 0
+            for key in self._client.scan_iter(match=f"{prefix}*"):
+                removed += int(self._client.delete(key))
+            return removed
+        except RedisError as exc:
+            logger.warning("redis delete_by_prefix failed prefix=%s error=%s", prefix, exc)
+            return 0
+
 
 @lru_cache(maxsize=1)
 def get_redis_client() -> RedisClient:
