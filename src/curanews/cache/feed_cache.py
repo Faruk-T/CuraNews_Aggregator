@@ -83,3 +83,12 @@ class FeedCache:
         if deleted:
             logger.info("cache invalidated key=%s", key)
         return deleted
+
+    def invalidate_all(self) -> int:
+        """Drop all ``feed:*`` keys after new articles land (G13/G17)."""
+        if not self._client.available:
+            return 0
+        removed = self._client.delete_by_prefix("feed:")
+        if removed:
+            logger.info("cache invalidated prefix=feed:* count=%s", removed)
+        return removed
