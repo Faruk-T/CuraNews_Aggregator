@@ -10,7 +10,7 @@ Social-media and web-backed dynamic news aggregator (internship project, 20 days
 |-------|--------|----------|
 | Phase 1 | Setup, Scrapy skeleton, early pipeline | Complete (Days 1–5) |
 | Phase 2 | Playwright, backoff, adapters, parallel, policy | Complete (Days 6–10) |
-| Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | In progress (Day 13) |
+| Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | In progress (Day 14) |
 | Phase 4 | REST API, frontend, tests, release | Not started |
 
 Tracking: [GitHub Issues](https://github.com/Faruk-T/CuraNews_Aggregator/issues) · Plan: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
@@ -37,6 +37,8 @@ poetry run python scripts/pg_smoke_crud.py
 docker compose up -d redis
 poetry run python scripts/verify_redis_cache.py --ttl 2
 poetry run python scripts/run_ingestion.py --adapter static
+poetry run python -m spacy download en_core_web_sm
+poetry run python scripts/verify_spacy_nlp.py --require-model
 ```
 
 Copy `.env.example` → `.env` for local overrides (never commit `.env`).
@@ -53,6 +55,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - PostgreSQL schema: [`docs/postgresql-schema.md`](./docs/postgresql-schema.md)
 - Redis cache: [`docs/redis-cache.md`](./docs/redis-cache.md)
 - Ingestion pipeline: [`docs/ingestion-pipeline.md`](./docs/ingestion-pipeline.md)
+- spaCy NLP: [`docs/spacy-nlp.md`](./docs/spacy-nlp.md)
 - Allowed sources: [`docs/sources.md`](./docs/sources.md)
 
 ## Issues completed
@@ -67,9 +70,10 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - [x] [#8](https://github.com/Faruk-T/CuraNews_Aggregator/issues/8) SourceAdapter + news API
 - [x] [#9](https://github.com/Faruk-T/CuraNews_Aggregator/issues/9) Async parallel fetch
 - [x] [#10](https://github.com/Faruk-T/CuraNews_Aggregator/issues/10) Cleaning + polite crawl
-- [ ] [#11](https://github.com/Faruk-T/CuraNews_Aggregator/issues/11) PostgreSQL schema + ORM (Day 11 branch)
-- [ ] [#12](https://github.com/Faruk-T/CuraNews_Aggregator/issues/12) Redis cache + scrape guard (Day 12 branch)
-- [ ] [#13](https://github.com/Faruk-T/CuraNews_Aggregator/issues/13) Ingestion pipeline + dedupe (Day 13 branch)
+- [x] [#11](https://github.com/Faruk-T/CuraNews_Aggregator/issues/11) PostgreSQL schema + ORM
+- [x] [#12](https://github.com/Faruk-T/CuraNews_Aggregator/issues/12) Redis cache + scrape guard
+- [x] [#13](https://github.com/Faruk-T/CuraNews_Aggregator/issues/13) Ingestion pipeline + dedupe
+- [ ] [#14](https://github.com/Faruk-T/CuraNews_Aggregator/issues/14) spaCy NLP entities (Day 14 branch)
 
 ## Planned layout
 
