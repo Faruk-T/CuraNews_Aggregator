@@ -31,6 +31,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Skip feed:* Redis invalidation after inserts",
     )
+    parser.add_argument(
+        "--no-nlp",
+        action="store_true",
+        help="Skip spaCy/topic tagging after insert (G14)",
+    )
     args = parser.parse_args(argv)
 
     if args.list:
@@ -47,6 +52,7 @@ def main(argv: list[str] | None = None) -> int:
         pipeline = IngestionPipeline(
             session,
             invalidate_feed_cache=not args.no_cache_invalidate,
+            run_nlp=not args.no_nlp,
         )
         stats = pipeline.ingest_adapter(adapter, limit=max(1, args.limit))
         session.commit()
@@ -58,6 +64,7 @@ def main(argv: list[str] | None = None) -> int:
             "duplicates": stats.duplicates,
             "skipped_invalid": stats.skipped_invalid,
             "feed_keys_invalidated": stats.feed_keys_invalidated,
+            "entities_linked": stats.entities_linked,
         }
         print(json.dumps(payload, indent=2))
         return 0 if stats.persisted else 1

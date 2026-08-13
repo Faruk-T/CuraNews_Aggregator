@@ -53,7 +53,7 @@ def _valid_draft(url: str, *, title: str = "Headline") -> RawArticleDraft:
 
 def test_ingestion_inserts_valid_drafts(session: Session) -> None:
     adapter: SourceAdapter = _StubAdapter([_valid_draft("https://example.com/news/a")])
-    pipeline = IngestionPipeline(session, invalidate_feed_cache=False)
+    pipeline = IngestionPipeline(session, invalidate_feed_cache=False, run_nlp=False)
     stats = pipeline.ingest_adapter(adapter, limit=5)
 
     assert stats.fetched == 1
@@ -73,7 +73,7 @@ def test_ingestion_skips_duplicate_url_hash(session: Session) -> None:
             _valid_draft("https://example.com/news/dup", title="Second"),
         ]
     )
-    pipeline = IngestionPipeline(session, invalidate_feed_cache=False)
+    pipeline = IngestionPipeline(session, invalidate_feed_cache=False, run_nlp=False)
     stats = pipeline.ingest_adapter(adapter, limit=5)
 
     assert stats.inserted == 1
@@ -85,7 +85,7 @@ def test_ingestion_skips_duplicate_url_hash(session: Session) -> None:
 def test_ingestion_second_run_is_all_duplicates(session: Session) -> None:
     draft = _valid_draft("https://example.com/news/replay")
     adapter: SourceAdapter = _StubAdapter([draft])
-    pipeline = IngestionPipeline(session, invalidate_feed_cache=False)
+    pipeline = IngestionPipeline(session, invalidate_feed_cache=False, run_nlp=False)
 
     first = pipeline.ingest_adapter(adapter, limit=5)
     assert first.inserted == 1
@@ -104,7 +104,7 @@ def test_ingestion_skips_incomplete_drafts(session: Session) -> None:
             _valid_draft("https://example.com/news/ok"),
         ]
     )
-    pipeline = IngestionPipeline(session, invalidate_feed_cache=False)
+    pipeline = IngestionPipeline(session, invalidate_feed_cache=False, run_nlp=False)
     stats = pipeline.ingest_adapter(adapter, limit=5)
 
     assert stats.skipped_invalid == 1

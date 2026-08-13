@@ -10,8 +10,11 @@ Adapter.fetch()
   → promote_draft()          # strict NewsArticle
   → scrub_news_article()     # light PII scrub (expanded in G15)
   → insert_article()         # url_hash dedupe — duplicate → no new row
+  → tag_article()            # spaCy NER + TOPIC keywords → article_entities (G14)
   → FeedCache.invalidate_all()   # optional feed:* flush
 ```
+
+Disable NLP with `--no-nlp` on `run_ingestion.py`.
 
 ## Run locally
 

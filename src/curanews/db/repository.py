@@ -10,8 +10,16 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from curanews.db.entity_repository import EntityRepository
 from curanews.db.models import Article, Source
 from curanews.db.sqlite_store import canonical_url_hash
+
+__all__ = [
+    "ArticleRepository",
+    "EntityRepository",
+    "SourceRepository",
+    "content_hash",
+]
 
 
 def content_hash(text: str) -> str:
