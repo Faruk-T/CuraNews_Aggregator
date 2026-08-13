@@ -26,6 +26,7 @@ class IngestionStats:
     duplicates: int = 0
     skipped_invalid: int = 0
     feed_keys_invalidated: int = 0
+    entities_linked: int = 0
 
     @property
     def persisted(self) -> int:
@@ -38,6 +39,7 @@ class IngestionPipeline:
 
     session: Session
     invalidate_feed_cache: bool = True
+    run_nlp: bool = True
     _sources: SourceRepository = field(init=False)
     _articles: ArticleRepository = field(init=False)
     _feed_cache: FeedCache | None = field(init=False)
@@ -84,6 +86,10 @@ class IngestionPipeline:
                     adapter.source_id,
                     row.id,
                 )
+                if self.run_nlp:
+                    from curanews.nlp.tagging import tag_article
+
+                    stats.entities_linked += tag_article(self.session, row)
 
         if stats.inserted and self._feed_cache is not None:
             stats.feed_keys_invalidated = self._feed_cache.invalidate_all()
