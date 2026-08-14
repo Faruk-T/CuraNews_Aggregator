@@ -19,4 +19,8 @@ def __getattr__(name: str):
         from curanews.nlp import tagging
 
         return getattr(tagging, name)
+    if name in {"CurationEngine", "ScoredArticle", "jaccard", "freshness_score"}:
+        from curanews.nlp import curation
+
+        return getattr(curation, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
