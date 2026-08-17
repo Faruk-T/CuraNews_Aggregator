@@ -10,8 +10,8 @@ Social-media and web-backed dynamic news aggregator (internship project, 20 days
 |-------|--------|----------|
 | Phase 1 | Setup, Scrapy skeleton, early pipeline | Complete (Days 1–5) |
 | Phase 2 | Playwright, backoff, adapters, parallel, policy | Complete (Days 6–10) |
-| Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | In progress (Day 15) |
-| Phase 4 | REST API, frontend, tests, release | Not started |
+| Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | Complete (Days 11–15) |
+| Phase 4 | REST API, frontend, tests, release | In progress (Day 16) |
 
 Tracking: [GitHub Issues](https://github.com/Faruk-T/CuraNews_Aggregator/issues) · Plan: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
@@ -41,6 +41,7 @@ poetry run python -m spacy download en_core_web_sm
 poetry run python scripts/verify_spacy_nlp.py --require-model
 poetry run python scripts/seed_demo_users.py
 poetry run python scripts/verify_curation.py
+poetry run python scripts/run_api.py
 ```
 
 Copy `.env.example` → `.env` for local overrides (never commit `.env`).
@@ -59,6 +60,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - Ingestion pipeline: [`docs/ingestion-pipeline.md`](./docs/ingestion-pipeline.md)
 - spaCy NLP: [`docs/spacy-nlp.md`](./docs/spacy-nlp.md)
 - Curation + PII: [`docs/curation-pii.md`](./docs/curation-pii.md)
+- FastAPI REST: [`docs/fastapi-api.md`](./docs/fastapi-api.md)
 - Allowed sources: [`docs/sources.md`](./docs/sources.md)
 
 ## Issues completed
@@ -77,7 +79,8 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - [x] [#12](https://github.com/Faruk-T/CuraNews_Aggregator/issues/12) Redis cache + scrape guard
 - [x] [#13](https://github.com/Faruk-T/CuraNews_Aggregator/issues/13) Ingestion pipeline + dedupe
 - [x] [#14](https://github.com/Faruk-T/CuraNews_Aggregator/issues/14) spaCy NLP entities
-- [ ] [#15](https://github.com/Faruk-T/CuraNews_Aggregator/issues/15) Curation + PII (Day 15 branch)
+- [x] [#15](https://github.com/Faruk-T/CuraNews_Aggregator/issues/15) Curation + PII
+- [ ] [#16](https://github.com/Faruk-T/CuraNews_Aggregator/issues/16) FastAPI REST skeleton (Day 16 branch)
 
 ## Planned layout
 
