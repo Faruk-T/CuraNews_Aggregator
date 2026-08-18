@@ -92,3 +92,13 @@ class FeedCache:
         if removed:
             logger.info("cache invalidated prefix=feed:* count=%s", removed)
         return removed
+
+    def invalidate_user(self, user_id: str) -> int:
+        """Drop all feed keys for one user after a read / profile change."""
+        if not self._client.available:
+            return 0
+        prefix = f"feed:{user_id}:"
+        removed = self._client.delete_by_prefix(prefix)
+        if removed:
+            logger.info("cache invalidated user=%s count=%s", user_id, removed)
+        return removed
