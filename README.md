@@ -11,7 +11,7 @@ Social-media and web-backed dynamic news aggregator (internship project, 20 days
 | Phase 1 | Setup, Scrapy skeleton, early pipeline | Complete (Days 1–5) |
 | Phase 2 | Playwright, backoff, adapters, parallel, policy | Complete (Days 6–10) |
 | Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | Complete (Days 11–15) |
-| Phase 4 | REST API, frontend, tests, release | In progress (Day 16) |
+| Phase 4 | REST API, frontend, tests, release | In progress (Day 17) |
 
 Tracking: [GitHub Issues](https://github.com/Faruk-T/CuraNews_Aggregator/issues) · Plan: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
@@ -42,6 +42,7 @@ poetry run python scripts/verify_spacy_nlp.py --require-model
 poetry run python scripts/seed_demo_users.py
 poetry run python scripts/verify_curation.py
 poetry run python scripts/run_api.py
+poetry run python scripts/verify_api_feed_cache.py
 ```
 
 Copy `.env.example` → `.env` for local overrides (never commit `.env`).
@@ -61,6 +62,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - spaCy NLP: [`docs/spacy-nlp.md`](./docs/spacy-nlp.md)
 - Curation + PII: [`docs/curation-pii.md`](./docs/curation-pii.md)
 - FastAPI REST: [`docs/fastapi-api.md`](./docs/fastapi-api.md)
+- API feed cache: [`docs/api-feed-cache.md`](./docs/api-feed-cache.md)
 - Allowed sources: [`docs/sources.md`](./docs/sources.md)
 
 ## Issues completed
@@ -80,7 +82,8 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - [x] [#13](https://github.com/Faruk-T/CuraNews_Aggregator/issues/13) Ingestion pipeline + dedupe
 - [x] [#14](https://github.com/Faruk-T/CuraNews_Aggregator/issues/14) spaCy NLP entities
 - [x] [#15](https://github.com/Faruk-T/CuraNews_Aggregator/issues/15) Curation + PII
-- [ ] [#16](https://github.com/Faruk-T/CuraNews_Aggregator/issues/16) FastAPI REST skeleton (Day 16 branch)
+- [x] [#16](https://github.com/Faruk-T/CuraNews_Aggregator/issues/16) FastAPI REST skeleton
+- [ ] [#17](https://github.com/Faruk-T/CuraNews_Aggregator/issues/17) API ↔ Redis / feed cache (Day 17 branch)
 
 ## Planned layout
 

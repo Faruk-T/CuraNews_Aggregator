@@ -17,8 +17,8 @@ Open: http://127.0.0.1:8000/docs · http://127.0.0.1:8000/health
 | GET | `/health` | app + db/redis probe |
 | GET | `/articles` | paginated list (`limit`, `offset`, `source`, `q`) |
 | GET | `/articles/{id}` | detail |
-| GET | `/feed?user_id=` | curated ranking (`cache` field; full Redis HIT/MISS in G17) |
-| POST | `/reads` | `{user_id, article_id, dwell_ms?}` |
+| GET | `/feed?user_id=` | curated ranking; body `cache` + header `X-Cache` (`hit`/`miss`/`bypass`) |
+| POST | `/reads` | `{user_id, article_id, dwell_ms?}` — invalidates user feed cache (G17) |
 | GET | `/topics` | popular entities |
 
 ## Modules
