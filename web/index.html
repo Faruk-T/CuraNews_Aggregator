@@ -3,61 +3,120 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CuraNews</title>
+    <title>CuraNews — Kürate haber masası</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/ui/styles.css" />
   </head>
   <body>
-    <div class="atmosphere" aria-hidden="true"></div>
+    <div class="atmosphere" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+      <span class="grain"></span>
+    </div>
 
-    <header class="hero">
-      <p class="hero-kicker">Personalized news aggregator</p>
-      <h1 class="brand">CuraNews</h1>
-      <p class="hero-lead">
-        Senin ilgi profiline göre sıralanan haber akışı — oku, işaretle, yeniden sıralansın.
+    <nav class="topbar">
+      <a class="wordmark" href="/ui/">
+        <span class="wordmark-mark">C</span>
+        <span class="wordmark-text">CuraNews</span>
+      </a>
+      <div class="topbar-meta">
+        <p id="liveClock" class="clock">—</p>
+      </div>
+    </nav>
+
+    <header class="masthead">
+      <p class="kicker">
+        <span class="pulse-dot" aria-hidden="true"></span>
+        Canlı kürasyon · TRT · A Haber · NTV Spor · Hürriyet · AA · BBC
+      </p>
+      <h1 class="brand">
+        <span class="brand-line">Haber</span>
+        <span class="brand-line accent">sana göre</span>
+        <span class="brand-line">sıralanır.</span>
+      </h1>
+      <p class="lede">
+        Yayınevi RSS’lerinden toplanır, profiline göre puanlanır. Okudukların 20 dakika ana akışta yeşil kalır, sonra Okunanlar’a geçer.
       </p>
     </header>
 
-    <section class="controls" aria-label="Feed controls">
-      <label class="field">
-        <span>Kullanıcı</span>
-        <select id="userSelect">
-          <option value="demo-user-a">demo-user-a (ekonomi / AI)</option>
-          <option value="demo-user-b">demo-user-b (spor / iklim)</option>
-        </select>
+    <section class="desk" aria-label="Masa kontrolleri">
+      <div class="personas" role="group" aria-label="Okur profili">
+        <button type="button" class="persona is-active" data-user="demo-user-a">
+          <span class="persona-name">Ada</span>
+          <span class="persona-role">Ekonomi · AI</span>
+        </button>
+        <button type="button" class="persona" data-user="demo-user-b">
+          <span class="persona-name">Deniz</span>
+          <span class="persona-role">Spor · İklim</span>
+        </button>
+      </div>
+
+      <label class="sr-only" for="userSelect">Kullanıcı</label>
+      <select id="userSelect" class="sr-only" aria-hidden="false">
+        <option value="demo-user-a">demo-user-a (ekonomi / AI)</option>
+        <option value="demo-user-b">demo-user-b (spor / iklim)</option>
+      </select>
+
+      <label class="search-field">
+        <span class="sr-only">Haber ara</span>
+        <input id="searchInput" type="search" placeholder="Başlık, kaynak veya konu ara…" autocomplete="off" />
       </label>
-      <label class="field">
-        <span>Konu filtresi</span>
-        <select id="topicSelect">
-          <option value="">Tümü</option>
-        </select>
-      </label>
+
       <button type="button" id="refreshBtn" class="btn secondary">Yenile</button>
     </section>
 
-    <div id="status" class="status" hidden role="status"></div>
-    <div id="error" class="error" hidden role="alert"></div>
+    <div id="topicCloud" class="topic-cloud" aria-label="Konu filtresi"></div>
+    <label class="sr-only" for="topicSelect">Konu filtresi</label>
+    <select id="topicSelect" class="sr-only">
+      <option value="">Tümü</option>
+    </select>
+
+    <div id="status" class="toast status" hidden role="status"></div>
+    <div id="error" class="toast error" hidden role="alert"></div>
 
     <main>
       <section class="feed-section">
         <div class="feed-meta">
-          <h2>Senin akışın</h2>
-          <p id="cacheBadge" class="cache-badge">cache: —</p>
+          <div>
+            <p class="section-kicker">Kürate akış</p>
+            <h2 id="feedHeading">Senin masan</h2>
+          </div>
+          <p id="feedCount" class="feed-count">—</p>
         </div>
-        <ol id="feedList" class="feed-list"></ol>
-        <p id="emptyState" class="empty" hidden>Bu filtreye uygun haber yok.</p>
+
+        <div class="view-tabs" role="tablist" aria-label="Akış görünümü">
+          <button type="button" class="chip is-active" id="viewAll" data-view="all">Akış</button>
+          <button type="button" class="chip" id="viewRead" data-view="read">Okunanlar</button>
+        </div>
+
+        <article id="featuredSlot" class="featured" hidden></article>
+        <ol id="feedList" class="feed-grid"></ol>
+        <div id="skeleton" class="skeleton-grid" hidden>
+          <div class="skel skel-feature"></div>
+          <div class="skel"></div>
+          <div class="skel"></div>
+          <div class="skel"></div>
+          <div class="skel"></div>
+        </div>
+        <p id="emptyState" class="empty" hidden>Bu filtreye uygun haber yok. Konuyu veya aramayı temizle.</p>
       </section>
     </main>
 
     <footer class="footer">
-      <a href="/docs">API docs</a>
-      <span>·</span>
-      <a href="/health">/health</a>
+      <p>CuraNews · resmi RSS, HTML kazıma yok</p>
+      <p>
+        <span id="cacheBadge" class="cache-badge">cache · —</span>
+        <span>·</span>
+        <a href="/docs">OpenAPI</a>
+        <span>·</span>
+        <a href="/health">/health</a>
+      </p>
     </footer>
 
     <script src="/ui/app.js" type="module"></script>

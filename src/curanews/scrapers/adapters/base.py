@@ -12,7 +12,7 @@ class SourceAdapter(Protocol):
     """Fetch normalized drafts from a single news source."""
 
     source_id: str
-    kind: Literal["static", "dynamic", "api"]
+    kind: Literal["static", "dynamic", "api", "rss"]
 
     def fetch(self, *, limit: int = 50) -> list[RawArticleDraft]:
         """Return up to ``limit`` drafts for validation and persistence."""

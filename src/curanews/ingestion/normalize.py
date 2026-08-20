@@ -11,6 +11,7 @@ DEFAULT_SOURCE_BASE_URLS: dict[str, str] = {
     "example_news": "https://example.com/",
     "dynamic_demo": "file://fixtures/dynamic_news_scroll.html",
     "gnews_api": "https://gnews.io/api/v4/top-headlines",
+    "rss_catalog": "https://feeds.bbci.co.uk/news/world/rss.xml",
 }
 
 

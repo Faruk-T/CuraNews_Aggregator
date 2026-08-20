@@ -41,6 +41,11 @@ class Settings(BaseSettings):
 
     spacy_model: str = "en_core_web_sm"
     feed_cache_ttl_seconds: int = Field(default=120, ge=1)
+    read_inbox_grace_seconds: int = Field(
+        default=20 * 60,
+        ge=0,
+        description="Seconds a read article stays on the main feed before moving to Okunanlar.",
+    )
     scrape_max_retries: int = Field(default=5, ge=0)
     scrape_backoff_base: float = Field(default=0.5, gt=0)
     scrape_concurrency: int = Field(default=2, ge=1, le=8)
@@ -49,7 +54,14 @@ class Settings(BaseSettings):
         description="Identifying User-Agent for HTTP/browser fetches (G10).",
     )
     scrape_allowlist_hosts: str = Field(
-        default="example.com,gnews.io,localhost,127.0.0.1",
+        default=(
+            "example.com,gnews.io,localhost,127.0.0.1,"
+            "feeds.bbci.co.uk,www.theguardian.com,feeds.npr.org,"
+            "www.aljazeera.com,rss.dw.com,www.aa.com.tr,"
+            "www.trthaber.com,www.ahaber.com.tr,www.ntv.com.tr,"
+            "www.cnnturk.com,www.hurriyet.com.tr,www.milliyet.com.tr,"
+            "www.haberturk.com"
+        ),
         description="Comma-separated hostnames permitted for outbound fetches.",
     )
 

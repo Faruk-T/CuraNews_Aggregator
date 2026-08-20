@@ -21,6 +21,7 @@ def main() -> int:
     try:
         repo = SourceRepository(session)
         seeds = [
+            ("rss_catalog", "https://feeds.bbci.co.uk/news/world/rss.xml", "rss"),
             ("example_news", "https://example.com/", "static"),
             ("dynamic_demo", "file://fixtures/dynamic_news_scroll.html", "dynamic"),
             ("gnews_api", "https://gnews.io/api/v4/top-headlines", "api"),
