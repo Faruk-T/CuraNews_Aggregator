@@ -13,6 +13,7 @@ def test_ui_index_is_served() -> None:
     assert response.status_code == 200
     assert "CuraNews" in response.text
     assert "feedList" in response.text
+    assert "featuredSlot" in response.text
 
 
 def test_root_redirects_to_ui() -> None:
