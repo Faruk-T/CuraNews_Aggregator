@@ -11,7 +11,7 @@ Social-media and web-backed dynamic news aggregator (internship project, 20 days
 | Phase 1 | Setup, Scrapy skeleton, early pipeline | Complete (Days 1–5) |
 | Phase 2 | Playwright, backoff, adapters, parallel, policy | Complete (Days 6–10) |
 | Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | Complete (Days 11–15) |
-| Phase 4 | REST API, frontend, tests, release | In progress (Day 18) |
+| Phase 4 | REST API, frontend, tests, release | In progress (Day 19) |
 
 Tracking: [GitHub Issues](https://github.com/Faruk-T/CuraNews_Aggregator/issues) · Plan: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
@@ -25,6 +25,7 @@ poetry install
 poetry run playwright install chromium
 poetry run python -m curanews
 poetry run pytest
+poetry run python scripts/run_tests.py
 poetry run python scripts/run_scrape.py
 poetry run python scripts/inspect_db.py
 poetry run python scripts/run_playwright_scrape.py
@@ -36,7 +37,8 @@ poetry run alembic upgrade head
 poetry run python scripts/pg_smoke_crud.py
 docker compose up -d redis
 poetry run python scripts/verify_redis_cache.py --ttl 2
-poetry run python scripts/run_ingestion.py --adapter static
+poetry run python scripts/run_ingestion.py --adapter rss
+poetry run python scripts/refresh_news.py
 poetry run python -m spacy download en_core_web_sm
 poetry run python scripts/verify_spacy_nlp.py --require-model
 poetry run python scripts/seed_demo_users.py
@@ -55,6 +57,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - Playwright: [`docs/playwright-scraping.md`](./docs/playwright-scraping.md)
 - Resilience / backoff: [`docs/resilience.md`](./docs/resilience.md)
 - Source adapters: [`docs/source-adapters.md`](./docs/source-adapters.md)
+- Allowed sources / RSS catalog: [`docs/sources.md`](./docs/sources.md)
 - Async parallel fetch: [`docs/async-parallel-fetch.md`](./docs/async-parallel-fetch.md)
 - Polite crawling / cleaning: [`docs/polite-crawling.md`](./docs/polite-crawling.md)
 - PostgreSQL schema: [`docs/postgresql-schema.md`](./docs/postgresql-schema.md)
@@ -65,7 +68,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - FastAPI REST: [`docs/fastapi-api.md`](./docs/fastapi-api.md)
 - API feed cache: [`docs/api-feed-cache.md`](./docs/api-feed-cache.md)
 - Web UI: [`docs/web-ui.md`](./docs/web-ui.md)
-- Allowed sources: [`docs/sources.md`](./docs/sources.md)
+- Testing / G19: [`docs/testing.md`](./docs/testing.md)
 
 ## Issues completed
 
@@ -86,7 +89,8 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - [x] [#15](https://github.com/Faruk-T/CuraNews_Aggregator/issues/15) Curation + PII
 - [x] [#16](https://github.com/Faruk-T/CuraNews_Aggregator/issues/16) FastAPI REST skeleton
 - [x] [#17](https://github.com/Faruk-T/CuraNews_Aggregator/issues/17) API ↔ Redis / feed cache
-- [ ] [#18](https://github.com/Faruk-T/CuraNews_Aggregator/issues/18) Web UI (Day 18 branch)
+- [x] [#18](https://github.com/Faruk-T/CuraNews_Aggregator/issues/18) Web UI
+- [x] [#19](https://github.com/Faruk-T/CuraNews_Aggregator/issues/19) Integration tests (Day 19)
 
 ## Planned layout
 

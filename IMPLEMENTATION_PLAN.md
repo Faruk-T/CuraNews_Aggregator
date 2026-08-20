@@ -1085,7 +1085,7 @@ Her görev için: **Amaç · Bağlam · Teslimatlar · Teknik yaklaşım · Bağ
 
 ---
 
-#### [ ] G19 — Entegrasyon testleri
+#### [x] G19 — Entegrasyon testleri
 
 - **Amaç:** Regresyon ağı.
 - **Teslimatlar:**
@@ -1095,8 +1095,8 @@ Her görev için: **Amaç · Bağlam · Teslimatlar · Teknik yaklaşım · Bağ
   - dedupe test
   - mümkünse Redis fake/fakeredis veya skip marker
 - **Kabul kriterleri:**
-  - [ ] `pytest` tek komutla yeşil
-  - [ ] CI yoksa bile script/README’de komut var
+  - [x] `pytest` tek komutla yeşil
+  - [x] CI yoksa bile script/README’de komut var
 
 ---
 
@@ -1269,7 +1269,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | G16 | [#16](https://github.com/Faruk-T/CuraNews_Aggregator/issues/16) | FastAPI iskelet | Must | 4 | [ ] |
 | G17 | [#17](https://github.com/Faruk-T/CuraNews_Aggregator/issues/17) | API entegrasyon / pagination | Must | 4 | [ ] |
 | G18 | [#18](https://github.com/Faruk-T/CuraNews_Aggregator/issues/18) | Web UI | Should | 4 | [ ] |
-| G19 | [#19](https://github.com/Faruk-T/CuraNews_Aggregator/issues/19) | Frontend integration | Should | 4 | [ ] |
+| G19 | [#19](https://github.com/Faruk-T/CuraNews_Aggregator/issues/19) | Frontend integration | Should | 4 | [x] |
 | G20 | [#20](https://github.com/Faruk-T/CuraNews_Aggregator/issues/20) | Deploy + teslim | Must | 4 | [ ] |
 
 **Genel ilerleme:** **6 izlenen iş** (G1,G3,G4,G5 + Issue #3 + Issue #5) · Faz 1 dikeyi SQLite’a kadar tamam
