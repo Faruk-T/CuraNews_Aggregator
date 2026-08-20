@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CuraNews</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/ui/styles.css" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+
+    <header class="hero">
+      <p class="hero-kicker">Personalized news aggregator</p>
+      <h1 class="brand">CuraNews</h1>
+      <p class="hero-lead">
+        Senin ilgi profiline göre sıralanan haber akışı — oku, işaretle, yeniden sıralansın.
+      </p>
+    </header>
+
+    <section class="controls" aria-label="Feed controls">
+      <label class="field">
+        <span>Kullanıcı</span>
+        <select id="userSelect">
+          <option value="demo-user-a">demo-user-a (ekonomi / AI)</option>
+          <option value="demo-user-b">demo-user-b (spor / iklim)</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Konu filtresi</span>
+        <select id="topicSelect">
+          <option value="">Tümü</option>
+        </select>
+      </label>
+      <button type="button" id="refreshBtn" class="btn secondary">Yenile</button>
+    </section>
+
+    <div id="status" class="status" hidden role="status"></div>
+    <div id="error" class="error" hidden role="alert"></div>
+
+    <main>
+      <section class="feed-section">
+        <div class="feed-meta">
+          <h2>Senin akışın</h2>
+          <p id="cacheBadge" class="cache-badge">cache: —</p>
+        </div>
+        <ol id="feedList" class="feed-list"></ol>
+        <p id="emptyState" class="empty" hidden>Bu filtreye uygun haber yok.</p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <a href="/docs">API docs</a>
+      <span>·</span>
+      <a href="/health">/health</a>
+    </footer>
+
+    <script src="/ui/app.js" type="module"></script>
+  </body>
+</html>
