@@ -5,9 +5,11 @@ from __future__ import annotations
 from curanews.scrapers.adapters.base import SourceAdapter
 from curanews.scrapers.adapters.dynamic_fixture import DynamicFixtureAdapter
 from curanews.scrapers.adapters.news_api_client import NewsApiAdapter
+from curanews.scrapers.adapters.rss_client import RssCatalogAdapter
 from curanews.scrapers.adapters.static_fixture import StaticFixtureAdapter
 
 _BUILTIN: dict[str, type] = {
+    "rss": RssCatalogAdapter,
     "static": StaticFixtureAdapter,
     "dynamic": DynamicFixtureAdapter,
     "api": NewsApiAdapter,

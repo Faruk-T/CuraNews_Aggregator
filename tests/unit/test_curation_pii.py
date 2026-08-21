@@ -135,3 +135,7 @@ def test_user_a_and_b_rankings_differ(session: Session) -> None:
     assert rank_a != rank_b
     assert rank_a[0] == "Economy headline"
     assert rank_b[0] == "Sports headline"
+
+    hidden = [s.article.title for s in engine.rank(user_a.id, candidates, now=now, hide_read=True)]
+    assert "Economy headline" not in hidden
+    assert hidden[0] in {"Sports headline", "Climate headline"}

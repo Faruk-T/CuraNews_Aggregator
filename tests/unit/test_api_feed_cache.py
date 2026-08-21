@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import time
 from collections.abc import Generator
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -19,7 +19,7 @@ from curanews.api.routers.feed import get_feed_cache
 from curanews.cache.feed_cache import FeedCache
 from curanews.db.base import Base
 from curanews.db.entity_repository import EntityRepository
-from curanews.db.models import Article, Source
+from curanews.db.models import Article, Source, UserRead
 from curanews.db.user_repository import UserRepository
 from curanews.nlp.entities import ExtractedEntity
 
@@ -175,8 +175,9 @@ def test_read_invalidates_cache_and_can_change_ranking(
     before = client.get("/feed", params={"user_id": "demo-user-a", "limit": 5})
     assert before.json()["cache"] == "miss"
     titles_before = [i["title"] for i in before.json()["items"]]
+    assert "Sports final" in titles_before
 
-    # Bias profile toward sports
+    # Consuming an item keeps it on the main feed for the 20-minute grace window.
     read = client.post(
         "/reads",
         json={"user_id": "demo-user-a", "article_id": str(sports.id), "dwell_ms": 5000},
@@ -186,6 +187,44 @@ def test_read_invalidates_cache_and_can_change_ranking(
     after = client.get("/feed", params={"user_id": "demo-user-a", "limit": 5})
     assert after.json()["cache"] == "miss"  # invalidated → recompute
     titles_after = [i["title"] for i in after.json()["items"]]
-    assert titles_after[0] == "Sports final"
-    # Ranking should reflect new interest (at least top item sports)
-    assert titles_before != titles_after or titles_after[0] == "Sports final"
+    by_title = {i["title"]: i for i in after.json()["items"]}
+    assert "Sports final" in titles_after
+    assert by_title["Sports final"]["read"] is True
+    assert by_title["Sports final"]["read_at"] is not None
+    assert by_title["Economy rally"]["read"] is False
+    assert titles_before != titles_after or by_title["Sports final"]["read"] is True
+    read_titles = [i["title"] for i in after.json()["read_items"]]
+    assert "Sports final" in read_titles
+    assert after.json()["inbox_grace_seconds"] == 1200
+
+
+def test_stale_read_leaves_inbox_but_stays_in_read_items(
+    client: TestClient, session: Session
+) -> None:
+    economy, sports = _seed_two_articles(session)
+    posted = client.post(
+        "/reads",
+        json={"user_id": "demo-user-a", "article_id": str(sports.id), "dwell_ms": 5000},
+    )
+    assert posted.status_code == 201
+
+    session.expire_all()
+    user = UserRepository(session).get_by_external_key("demo-user-a")
+    assert user is not None
+    row = session.scalars(
+        select(UserRead).where(
+            UserRead.user_id == user.id,
+            UserRead.article_id == sports.id,
+        )
+    ).one()
+    row.read_at = datetime.now(UTC) - timedelta(minutes=21)
+    session.commit()
+
+    feed = client.get("/feed", params={"user_id": "demo-user-a", "limit": 5})
+    assert feed.status_code == 200
+    titles = [i["title"] for i in feed.json()["items"]]
+    read_titles = [i["title"] for i in feed.json()["read_items"]]
+    assert "Sports final" not in titles
+    assert "Economy rally" in titles
+    assert "Sports final" in read_titles
+    assert all(i["read"] is True for i in feed.json()["read_items"] if i["title"] == "Sports final")

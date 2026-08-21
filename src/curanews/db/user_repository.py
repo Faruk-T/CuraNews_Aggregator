@@ -57,6 +57,15 @@ class UserRepository:
         self._session.flush()
         return row
 
+    def read_times(self, user_id: UUID) -> dict[UUID, datetime]:
+        """Map article id → when this user marked it read."""
+        stmt = select(UserRead.article_id, UserRead.read_at).where(UserRead.user_id == user_id)
+        return {article_id: read_at for article_id, read_at in self._session.execute(stmt)}
+
+    def read_article_ids(self, user_id: UUID) -> set[UUID]:
+        """Article ids this user has already marked as read."""
+        return set(self.read_times(user_id))
+
     def entity_profile(self, user_id: UUID) -> set[str]:
         """Return normalized entity labels from articles the user has read."""
         stmt = (

@@ -28,5 +28,38 @@ services:
       timeout: 3s
       retries: 5
 
+  api:
+    build: .
+    container_name: curanews-api
+    ports:
+      # Host 8001 — Windows often blocks/occupies 8000 (WinError 10013).
+      - "8001:8000"
+    environment:
+      APP_ENV: prod
+      LOG_LEVEL: INFO
+      APP_NAME: CuraNews Aggregator
+      DATABASE_URL: postgresql+psycopg://curanews:curanews@postgres:5432/curanews
+      REDIS_URL: redis://redis:6379/0
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      FEED_CACHE_TTL_SECONDS: 120
+      READ_INBOX_GRACE_SECONDS: 1200
+      # First boot: seed sources + pull RSS + demo users A/B
+      CURANEWS_BOOTSTRAP: "1"
+      PII_HASH_SALT: change-me-in-local-only
+      SCRAPE_ALLOWLIST_HOSTS: "example.com,gnews.io,localhost,127.0.0.1,feeds.bbci.co.uk,www.theguardian.com,feeds.npr.org,www.aljazeera.com,rss.dw.com,www.aa.com.tr,www.trthaber.com,www.ahaber.com.tr,www.ntv.com.tr,www.cnnturk.com,www.hurriyet.com.tr,www.milliyet.com.tr,www.haberturk.com"
+      SCRAPE_USER_AGENT: CuraNewsBot/0.1 (+https://github.com/Faruk-T/CuraNews_Aggregator)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+
 volumes:
   curanews_pg_data:

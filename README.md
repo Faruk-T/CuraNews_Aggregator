@@ -11,11 +11,56 @@ Social-media and web-backed dynamic news aggregator (internship project, 20 days
 | Phase 1 | Setup, Scrapy skeleton, early pipeline | Complete (Days 1–5) |
 | Phase 2 | Playwright, backoff, adapters, parallel, policy | Complete (Days 6–10) |
 | Phase 3 | PostgreSQL/Redis, spaCy, curation, PII | Complete (Days 11–15) |
-| Phase 4 | REST API, frontend, tests, release | In progress (Day 18) |
+| Phase 4 | REST API, frontend, tests, release | Complete (Days 16–20) |
 
 Tracking: [GitHub Issues](https://github.com/Faruk-T/CuraNews_Aggregator/issues) · Plan: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
 
-## Quick start
+## Quick start (5 steps)
+
+Requires **Docker Desktop** (Compose). First build may take a few minutes.
+
+```powershell
+# 1 — clone & enter repo
+cd CuraNews-Aggregator
+
+# 2 — start Postgres + Redis + API (migrates + bootstraps RSS on first boot)
+docker compose up -d --build
+
+# 3 — wait for health / feed smoke
+poetry run python scripts/compose_smoke.py
+# (or open http://127.0.0.1:8000/health in a browser)
+
+# 4 — open the desk
+# http://127.0.0.1:8001/ui/
+
+# 5 — OpenAPI (optional)
+# http://127.0.0.1:8001/docs
+```
+
+Demo personas: **Ada** (`demo-user-a`) and **Deniz** (`demo-user-b`).  
+API is published on **host port 8001** (container still listens on 8000) because Windows often blocks 8000.  
+Secrets: copy `.env.example` → `.env` only for local Poetry runs — never commit `.env`.
+
+Mentor script: [`docs/demo.md`](./docs/demo.md) · Architecture: [`docs/architecture.md`](./docs/architecture.md)
+
+### Local Poetry API (optional)
+
+If Compose API port 8000 is busy, or you prefer host Python:
+
+```powershell
+docker compose up -d postgres redis
+Copy-Item .env.example .env
+poetry install
+poetry run python -m spacy download en_core_web_sm
+poetry run alembic upgrade head
+poetry run python scripts/seed_sources.py
+poetry run python scripts/refresh_news.py
+$env:API_PORT=8001
+poetry run python scripts/run_api.py
+# http://127.0.0.1:8001/ui/
+```
+
+### Dev toolbox (full)
 
 Requires **Python 3.11–3.13** and [Poetry](https://python-poetry.org/).
 
@@ -23,8 +68,8 @@ Requires **Python 3.11–3.13** and [Poetry](https://python-poetry.org/).
 python -m pip install poetry
 poetry install
 poetry run playwright install chromium
-poetry run python -m curanews
 poetry run pytest
+poetry run python scripts/run_tests.py
 poetry run python scripts/run_scrape.py
 poetry run python scripts/inspect_db.py
 poetry run python scripts/run_playwright_scrape.py
@@ -36,17 +81,17 @@ poetry run alembic upgrade head
 poetry run python scripts/pg_smoke_crud.py
 docker compose up -d redis
 poetry run python scripts/verify_redis_cache.py --ttl 2
-poetry run python scripts/run_ingestion.py --adapter static
+poetry run python scripts/run_ingestion.py --adapter rss
+poetry run python scripts/refresh_news.py
 poetry run python -m spacy download en_core_web_sm
 poetry run python scripts/verify_spacy_nlp.py --require-model
 poetry run python scripts/seed_demo_users.py
 poetry run python scripts/verify_curation.py
 poetry run python scripts/run_api.py
 poetry run python scripts/verify_api_feed_cache.py
-# then open http://127.0.0.1:8000/ui/
 ```
 
-Copy `.env.example` → `.env` for local overrides (never commit `.env`).
+## Docs
 
 - Dependency pinning: [`docs/dependency-pinning.md`](./docs/dependency-pinning.md)
 - Data model: [`docs/data-model.md`](./docs/data-model.md)
@@ -55,6 +100,7 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - Playwright: [`docs/playwright-scraping.md`](./docs/playwright-scraping.md)
 - Resilience / backoff: [`docs/resilience.md`](./docs/resilience.md)
 - Source adapters: [`docs/source-adapters.md`](./docs/source-adapters.md)
+- Allowed sources / RSS catalog: [`docs/sources.md`](./docs/sources.md)
 - Async parallel fetch: [`docs/async-parallel-fetch.md`](./docs/async-parallel-fetch.md)
 - Polite crawling / cleaning: [`docs/polite-crawling.md`](./docs/polite-crawling.md)
 - PostgreSQL schema: [`docs/postgresql-schema.md`](./docs/postgresql-schema.md)
@@ -65,7 +111,9 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - FastAPI REST: [`docs/fastapi-api.md`](./docs/fastapi-api.md)
 - API feed cache: [`docs/api-feed-cache.md`](./docs/api-feed-cache.md)
 - Web UI: [`docs/web-ui.md`](./docs/web-ui.md)
-- Allowed sources: [`docs/sources.md`](./docs/sources.md)
+- Testing / G19: [`docs/testing.md`](./docs/testing.md)
+- Architecture / G20: [`docs/architecture.md`](./docs/architecture.md)
+- Mentor demo / G20: [`docs/demo.md`](./docs/demo.md)
 
 ## Issues completed
 
@@ -86,16 +134,18 @@ Copy `.env.example` → `.env` for local overrides (never commit `.env`).
 - [x] [#15](https://github.com/Faruk-T/CuraNews_Aggregator/issues/15) Curation + PII
 - [x] [#16](https://github.com/Faruk-T/CuraNews_Aggregator/issues/16) FastAPI REST skeleton
 - [x] [#17](https://github.com/Faruk-T/CuraNews_Aggregator/issues/17) API ↔ Redis / feed cache
-- [ ] [#18](https://github.com/Faruk-T/CuraNews_Aggregator/issues/18) Web UI (Day 18 branch)
+- [x] [#18](https://github.com/Faruk-T/CuraNews_Aggregator/issues/18) Web UI
+- [x] [#19](https://github.com/Faruk-T/CuraNews_Aggregator/issues/19) Integration tests (Day 19)
+- [x] [#20](https://github.com/Faruk-T/CuraNews_Aggregator/issues/20) Deploy + delivery (Day 20)
 
 ## Planned layout
 
 ```text
 src/curanews/          # application package
-  scrapers/            # Scrapy / BeautifulSoup adapters
+  scrapers/            # Scrapy / BeautifulSoup / RSS adapters
   browser/             # Playwright workers
   resilience/          # backoff, rate limits
-  privacy/             # PII pseudonymization
+  privacy/             # PII scrub
   ingestion/           # normalize → dedupe → persist
   db/                  # ORM / migrations helpers
   cache/               # Redis client
@@ -103,8 +153,10 @@ src/curanews/          # application package
   api/                 # FastAPI routers
 docs/                  # architecture & process docs
 tests/                 # unit & integration tests
-web/                   # frontend (Phase 4)
-scripts/               # scrape/seed helpers
+web/                   # frontend
+scripts/               # scrape/seed/compose helpers
+Dockerfile             # API image
+docker-compose.yml     # postgres + redis + api
 ```
 
 ## Methodology
@@ -114,11 +166,5 @@ Scrumban (Scrum cadence + Kanban WIP/pull) with 4 milestones × ~5 days. See `IM
 ## Ethical crawling (Faz 2)
 
 - Fetch only hosts listed in `SCRAPE_ALLOWLIST_HOSTS` (see [`docs/sources.md`](./docs/sources.md)).
-- Use the identifying `CuraNewsBot/0.1` User-Agent; do not impersonate a browser user.
-- Keep concurrency at **2** or lower unless mentor approves a change.
-- Strip HTML/noise and validate required fields before persisting or serving articles.
-- Prefer offline fixtures for demos; live sites require permission and robots/ToS review.
-
-## License
-
-Internship / coursework use unless otherwise stated.
+- Production headlines come from **official RSS/Atom**, not HTML scraping of news sites.
+- Identifying User-Agent; no login bypass; demo fixtures when live access is blocked.

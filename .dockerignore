@@ -1,0 +1,24 @@
+# Build context noise — keep the API image lean.
+.git
+.github
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+htmlcov
+data/local
+*.sqlite3
+*.log
+logs
+docs/evidence
+.env
+.env.local
+docker-compose.override.yml
+playwright-report
+test-results
+.idea
+.vscode

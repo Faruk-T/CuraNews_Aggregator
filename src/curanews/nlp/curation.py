@@ -129,13 +129,17 @@ class CurationEngine:
         *,
         now: datetime | None = None,
         top_k: int | None = None,
+        hide_read: bool = False,
     ) -> list[ScoredArticle]:
         assert self._users is not None
         profile = self._users.entity_profile(user_id)
+        remaining = list(candidates)
+        if hide_read:
+            read_ids = self._users.read_article_ids(user_id)
+            remaining = [article for article in remaining if article.id not in read_ids]
         ranked: list[ScoredArticle] = []
         recent: list[UUID] = []
         # Greedy: pick highest score given diversity vs already picked
-        remaining = list(candidates)
         while remaining:
             best: ScoredArticle | None = None
             best_idx = -1

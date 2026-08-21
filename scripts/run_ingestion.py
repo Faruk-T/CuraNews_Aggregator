@@ -5,8 +5,8 @@ Usage::
     docker compose up -d postgres
     poetry run alembic upgrade head
     poetry run python scripts/seed_sources.py
-    poetry run python scripts/run_ingestion.py --adapter static
-    poetry run python scripts/run_ingestion.py --adapter static  # duplicates only
+    poetry run python scripts/run_ingestion.py --adapter rss
+    poetry run python scripts/run_ingestion.py --adapter rss  # duplicates only
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from curanews.scrapers.adapters import adapter_label, get_adapter, list_adapters
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Ingest adapter drafts into PostgreSQL")
-    parser.add_argument("--adapter", default="static", help="Adapter name (see --list)")
+    parser.add_argument("--adapter", default="rss", help="Adapter name (see --list)")
     parser.add_argument("--limit", type=int, default=10, help="Max drafts to fetch")
     parser.add_argument("--list", action="store_true", help="List registered adapters")
     parser.add_argument(

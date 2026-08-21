@@ -21,12 +21,11 @@ Disable NLP with `--no-nlp` on `run_ingestion.py`.
 ```powershell
 docker compose up -d postgres
 poetry run alembic upgrade head
-poetry run python scripts/seed_sources.py
-poetry run python scripts/run_ingestion.py --adapter static
-poetry run python scripts/run_ingestion.py --adapter static
+poetry run python scripts/refresh_news.py
+poetry run python scripts/run_ingestion.py --adapter rss
 ```
 
-Second run should report `"inserted": 0` and `"duplicates" > 0`.
+`refresh_news.py` pulls the public RSS catalog (BBC, Guardian, NPR, Al Jazeera, AA) then seeds demo users A/B. A second `run_ingestion.py --adapter rss` should report `"inserted": 0` and `"duplicates" > 0`.
 
 ## Modules
 

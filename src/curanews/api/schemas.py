@@ -27,6 +27,8 @@ class ArticleItem(BaseModel):
     published_at: datetime | None = None
     entities: list[str] = Field(default_factory=list)
     score: float | None = None
+    read: bool = False
+    read_at: datetime | None = None
 
 
 class ArticleListResponse(BaseModel):
@@ -41,6 +43,8 @@ class FeedResponse(BaseModel):
     generated_at: datetime
     cache: Literal["hit", "miss", "bypass"] = "miss"
     items: list[ArticleItem]
+    read_items: list[ArticleItem] = Field(default_factory=list)
+    inbox_grace_seconds: int = 1200
 
 
 class ReadCreate(BaseModel):

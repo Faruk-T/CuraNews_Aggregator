@@ -47,11 +47,17 @@ pytest-asyncio = "^0.25.0"
 ruff = "^0.9.0"
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --strict-markers"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "unit: fast isolated unit tests",
+    "integration: cross-module tests (API TestClient, ingestion, curation)",
+    "redis: optional live Redis tests (set CURANEWS_REDIS_URL)",
+    "network: optional public-internet tests (set CURANEWS_LIVE_RSS=1)",
+]
 
 [tool.ruff]
 line-length = 100

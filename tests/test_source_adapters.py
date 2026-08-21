@@ -93,7 +93,9 @@ def test_registry_lists_builtin_adapters() -> None:
     names = list_adapters()
     assert "static" in names
     assert "dynamic" in names
+    assert "rss" in names
     assert get_adapter("static").kind == "static"
+    assert get_adapter("rss").kind == "rss"
 
 
 def test_news_api_adapter_offline_without_key(monkeypatch: pytest.MonkeyPatch) -> None:

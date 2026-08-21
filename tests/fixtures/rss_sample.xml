@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>CuraNews Fixture Wire</title>
+    <link>https://feeds.bbci.co.uk/news/world/rss.xml</link>
+    <item>
+      <title>Fixture: coalition agrees ceasefire timetable</title>
+      <link>https://www.bbc.com/news/world-fixture-ceasefire</link>
+      <description>&lt;p&gt;Negotiators published a staged ceasefire calendar after overnight talks in Geneva.&lt;/p&gt;</description>
+      <content:encoded>&lt;p&gt;Negotiators published a staged ceasefire calendar after overnight talks in Geneva. Monitors will deploy in three phases.&lt;/p&gt;</content:encoded>
+      <pubDate>Tue, 19 Aug 2026 08:10:00 GMT</pubDate>
+      <category>world</category>
+      <dc:creator>Fixture Desk</dc:creator>
+    </item>
+    <item>
+      <title>Fixture: central bank holds rates amid inflation pause</title>
+      <link>https://www.bbc.com/news/business-fixture-rates</link>
+      <description>The policy rate stayed unchanged as year-on-year inflation cooled for a second month.</description>
+      <pubDate>2026-08-19T12:45:00Z</pubDate>
+      <category>business</category>
+      <author>Markets Desk</author>
+    </item>
+    <item>
+      <title>Incomplete row without a permalink</title>
+      <description>This item must be skipped because it has no URL.</description>
+    </item>
+  </channel>
+</rss>
