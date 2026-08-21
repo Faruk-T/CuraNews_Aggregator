@@ -1041,36 +1041,36 @@ Her görev için: **Amaç · Bağlam · Teslimatlar · Teknik yaklaşım · Bağ
 
 #### Faz 4 ilerleme
 
-- [ ] G16
-- [ ] G17
-- [ ] G18
-- [ ] G19
-- [ ] G20
+- [x] G16
+- [x] G17
+- [x] G18
+- [x] G19
+- [x] G20
 
 ---
 
-#### [ ] G16 — FastAPI REST iskeleti
+#### [x] G16 — FastAPI REST iskeleti
 
 - **Amaç:** HTTP yüzeyi.
 - **Teslimatlar:** router’lar (§7.6), Pydantic response modelleri, `/docs`
 - **Kabul kriterleri:**
-  - [ ] `/health` 200
-  - [ ] OpenAPI’de articles/feed/reads görünür (stub olsa bile)
+  - [x] `/health` 200
+  - [x] OpenAPI’de articles/feed/reads görünür (stub olsa bile)
 
 ---
 
-#### [ ] G17 — API ↔ DB / Redis / NLP entegrasyonu
+#### [x] G17 — API ↔ DB / Redis / NLP entegrasyonu
 
 - **Amaç:** Stub’ları gerçek veriye bağlamak.
 - **Kabul kriterleri:**
-  - [ ] `/feed` gerçek tablolardan scorlu liste döner
-  - [ ] Cache header veya body alanında `hit|miss`
-  - [ ] `POST /reads` sonrası (cache invalidate) sıralama değişebilir
+  - [x] `/feed` gerçek tablolardan scorlu liste döner
+  - [x] Cache header veya body alanında `hit|miss`
+  - [x] `POST /reads` sonrası (cache invalidate) sıralama değişebilir
 - **Bağımlılıklar:** G12, G15, G16
 
 ---
 
-#### [ ] G18 — Web arayüzü
+#### [x] G18 — Web arayüzü
 
 - **Amaç:** Mentorsuz tıklanabilir demo.
 - **Kapsam (bilinçli sade):**
@@ -1079,8 +1079,8 @@ Her görev için: **Amaç · Bağlam · Teslimatlar · Teknik yaklaşım · Bağ
   - Okundu butonu
   - Mobilde kırılmayan tek sütun layout
 - **Kabul kriterleri:**
-  - [ ] Desktop + dar ekranda akış tamam
-  - [ ] API down ise anlaşılır hata mesajı
+  - [x] Desktop + dar ekranda akış tamam
+  - [x] API down ise anlaşılır hata mesajı
 - **Tasarım notu:** Mevcut bir design system yok; sade, okunaklı, kart yağmuruna boğmayan arayüz. Marka adı “CuraNews” ilk bakışta görünür olsun.
 
 ---
@@ -1100,7 +1100,7 @@ Her görev için: **Amaç · Bağlam · Teslimatlar · Teknik yaklaşım · Bağ
 
 ---
 
-#### [ ] G20 — Dağıtım ve staj teslim paketi
+#### [x] G20 — Dağıtım ve staj teslim paketi
 
 - **Amaç:** Başkasının çalıştırabilmesi.
 - **Teslimatlar:**
@@ -1110,8 +1110,8 @@ Her görev için: **Amaç · Bağlam · Teslimatlar · Teknik yaklaşım · Bağ
   - mimari özeti (`docs/architecture.md`)
   - bu planın checkbox’ları güncel
 - **Kabul kriterleri:**
-  - [ ] Temiz makinede Compose ile feed görünür (veya video + mentor onayı)
-  - [ ] Secret örneği dışında gerçek secret yok
+  - [x] Temiz makinede Compose ile feed görünür (veya video + mentor onayı)
+  - [x] Secret örneği dışında gerçek secret yok
 - **Final çıkış kapısı:** Must’lar kapalı; demo tekrarlanabilir.
 
 ---
@@ -1168,13 +1168,13 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 
 ### 13.3 Teslim Kontrol Listesi
 
-- [ ] README quickstart
-- [ ] `.env.example`
-- [ ] Lock dosyası
-- [ ] `docs/architecture.md`
-- [ ] `docs/sources.md`
-- [ ] Testler yeşil
-- [ ] IMPLEMENTATION_PLAN checkbox’ları güncel
+- [x] README quickstart
+- [x] `.env.example`
+- [x] Lock dosyası
+- [x] `docs/architecture.md`
+- [x] `docs/sources.md`
+- [x] Testler yeşil
+- [x] IMPLEMENTATION_PLAN checkbox’ları güncel
 - [ ] Kısa staj raporu / sunum notları (opsiyonel ama önerilir)
 
 ---
@@ -1244,7 +1244,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | Faz 1 | G1–G5 | [x] Faz 1 kazıma dikeyi + SQLite pipeline (Issue #5) — review/retro | Gün 5 |
 | Faz 2 | G6–G10 | [~] Issue #6 Playwright (Day 6) — Issue #7 sırada | Gün 10 |
 | Faz 3 | G11–G15 | [ ] Başlanmadı | Gün 15 |
-| Faz 4 | G16–G20 | [ ] Başlanmadı | Gün 20 |
+| Faz 4 | G16–G20 | [x] Tamam | Gün 20 |
 
 ### 16.2 Görev özeti
 
@@ -1270,7 +1270,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | G17 | [#17](https://github.com/Faruk-T/CuraNews_Aggregator/issues/17) | API entegrasyon / pagination | Must | 4 | [ ] |
 | G18 | [#18](https://github.com/Faruk-T/CuraNews_Aggregator/issues/18) | Web UI | Should | 4 | [ ] |
 | G19 | [#19](https://github.com/Faruk-T/CuraNews_Aggregator/issues/19) | Frontend integration | Should | 4 | [x] |
-| G20 | [#20](https://github.com/Faruk-T/CuraNews_Aggregator/issues/20) | Deploy + teslim | Must | 4 | [ ] |
+| G20 | [#20](https://github.com/Faruk-T/CuraNews_Aggregator/issues/20) | Deploy + teslim | Must | 4 | [x] |
 
 **Genel ilerleme:** **6 izlenen iş** (G1,G3,G4,G5 + Issue #3 + Issue #5) · Faz 1 dikeyi SQLite’a kadar tamam
 
