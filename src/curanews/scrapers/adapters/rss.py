@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import Any
 
@@ -111,7 +111,7 @@ def _draft_from_item(node: etree._Element, *, feed: RssFeed) -> RawArticleDraft 
         url=url.strip(),
         content=body,
         summary=summary_clean,
-        published_date=published or datetime.now(timezone.utc),
+        published_date=published or datetime.now(UTC),
         source=f"{feed.key}:{feed.publisher}",
         category=final_category,
         author=author,
@@ -122,20 +122,25 @@ def _draft_from_item(node: etree._Element, *, feed: RssFeed) -> RawArticleDraft 
 
 def _extract_image_url(node: etree._Element, *html_snippets: str | None) -> str | None:
     """Extract first valid image URL from enclosure, media tags, or embedded HTML."""
-    for child in node:
+    for child in node.iter():
         local = _local(child.tag)
-        if local == "enclosure":
+        if local in {"enclosure", "content", "thumbnail"}:
             url = (child.get("url") or "").strip()
             mime = (child.get("type") or "").lower()
-            if url and (
-                mime.startswith("image/")
-                or any(url.lower().endswith(ext) for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif"))
-            ):
-                return url
-        elif local in {"content", "thumbnail"}:
-            url = (child.get("url") or "").strip()
             if url and (url.startswith("http://") or url.startswith("https://")):
+                if mime and not mime.startswith("image/") and not any(
+                    url.lower().endswith(ext) for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif")
+                ):
+                    continue
                 return url
+        elif local == "image":
+            url_elem = child.find("url")
+            if url_elem is not None and url_elem.text:
+                u = url_elem.text.strip()
+                if u.startswith("http://") or u.startswith("https://"):
+                    return u
+            if child.text and (child.text.startswith("http://") or child.text.startswith("https://")):
+                return child.text.strip()
 
     img_pat = re.compile(r'<img[^>]+src=["\'](https?://[^"\'>\s]+)["\']', re.IGNORECASE)
     for snippet in html_snippets:
@@ -206,8 +211,8 @@ def _parse_datetime(value: str | None) -> datetime | None:
     try:
         dt = parsedate_to_datetime(raw)
         if dt.tzinfo is None:
-            return dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone(timezone.utc)
+            return dt.replace(tzinfo=UTC)
+        return dt.astimezone(UTC)
     except (TypeError, ValueError, OverflowError):
         pass
     cleaned = raw.replace("Z", "+00:00")
@@ -216,5 +221,5 @@ def _parse_datetime(value: str | None) -> datetime | None:
     except ValueError:
         return None
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
