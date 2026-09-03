@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
@@ -10,6 +11,11 @@ from lxml import etree
 
 from curanews.domain.models import RawArticleDraft
 from curanews.ingestion.cleaning import strip_html_tags
+from curanews.nlp.categorizer import (
+    calculate_read_time,
+    categorize_text,
+    detect_breaking_news,
+)
 from curanews.scrapers.adapters._paths import fixture_path
 from curanews.scrapers.adapters.rss_catalog import RssFeed
 
@@ -78,18 +84,66 @@ def _draft_from_item(node: etree._Element, *, feed: RssFeed) -> RawArticleDraft 
         "publisher": feed.publisher,
         "feed_url": feed.url,
     }
+
+    image_url = _extract_image_url(node, content_html, summary)
+    if image_url:
+        metadata["image_url"] = image_url
+
+    clean_title = strip_html_tags(title)
+    cat_slug, cat_conf = categorize_text(
+        title=clean_title,
+        summary=summary_clean,
+        body=body,
+        default_category=category,
+    )
+    metadata["category_slug"] = cat_slug
+    metadata["category_confidence"] = cat_conf
+    metadata["is_breaking"] = detect_breaking_news(clean_title, summary_clean)
+    metadata["read_time_minutes"] = calculate_read_time(body, summary_clean)
+
+    # Use inferred category if feed category is missing or generic
+    final_category = category
+    if not final_category or final_category.lower() in {"world", "general", "turkey"}:
+        final_category = cat_slug
+
     return RawArticleDraft(
-        title=strip_html_tags(title),
+        title=clean_title,
         url=url.strip(),
         content=body,
         summary=summary_clean,
         published_date=published or datetime.now(timezone.utc),
         source=f"{feed.key}:{feed.publisher}",
-        category=category,
+        category=final_category,
         author=author,
         language=feed.language,
         metadata=metadata,
     )
+
+
+def _extract_image_url(node: etree._Element, *html_snippets: str | None) -> str | None:
+    """Extract first valid image URL from enclosure, media tags, or embedded HTML."""
+    for child in node:
+        local = _local(child.tag)
+        if local == "enclosure":
+            url = (child.get("url") or "").strip()
+            mime = (child.get("type") or "").lower()
+            if url and (
+                mime.startswith("image/")
+                or any(url.lower().endswith(ext) for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif"))
+            ):
+                return url
+        elif local in {"content", "thumbnail"}:
+            url = (child.get("url") or "").strip()
+            if url and (url.startswith("http://") or url.startswith("https://")):
+                return url
+
+    img_pat = re.compile(r'<img[^>]+src=["\'](https?://[^"\'>\s]+)["\']', re.IGNORECASE)
+    for snippet in html_snippets:
+        if snippet:
+            match = img_pat.search(snippet)
+            if match:
+                return match.group(1).strip()
+    return None
 
 
 def _link(node: etree._Element) -> str | None:

@@ -20,10 +20,13 @@ def list_articles(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     source: str | None = Query(default=None, description="Filter by source name"),
+    category: str | None = Query(default=None, description="Filter by category slug"),
     q: str | None = Query(default=None, description="Title search"),
     session: Session = Depends(get_db),
 ) -> ArticleListResponse:
-    rows, total = list_articles_query(session, limit=limit, offset=offset, source=source, q=q)
+    rows, total = list_articles_query(
+        session, limit=limit, offset=offset, source=source, category=category, q=q
+    )
     items = [article_to_item(session, row) for row in rows]
     return ArticleListResponse(total=total, limit=limit, offset=offset, items=items)
 

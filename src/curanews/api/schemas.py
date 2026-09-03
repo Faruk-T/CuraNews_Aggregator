@@ -21,9 +21,15 @@ class ArticleItem(BaseModel):
     id: UUID
     title: str
     summary: str | None = None
+    body: str | None = None
     url: str
     source_name: str
+    source_logo: str | None = None
+    image_url: str | None = None
     category: str | None = None
+    category_name: str | None = None
+    is_breaking: bool = False
+    read_time_minutes: int = 1
     published_at: datetime | None = None
     entities: list[str] = Field(default_factory=list)
     score: float | None = None

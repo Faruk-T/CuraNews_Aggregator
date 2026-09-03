@@ -1296,6 +1296,7 @@ web/ → API’ye tarayıcıdan veya api’nin static mount’u
 | 2.4 | 2026-07-30 | G5 / Issue #4: Scrapy example_news spider, AutoThrottle, BS4 parser |
 | 2.5 | 2026-07-31 | Issue #5: clean->validate->dedupe->SQLite pipelines |
 | 2.6 | 2026-08-04 | Issue #6: Playwright async + infinite scroll fixture |
+| 2.7 | 2026-09-03 | Gün 21: AI/Kural kategorizasyon, Son Dakika ticker, Bundle.app UI revizyonu, Site İçi Okuma Modali, Memur/Yaşlı modu (A+/Sepya/Kontrast), Sponsor/Reklam alanları |
 
 ---
 
