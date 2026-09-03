@@ -331,6 +331,7 @@ function showStatus(message) {
 
 function setLoading(isLoading) {
   els.skeleton.hidden = !isLoading;
+  els.skeleton.style.display = isLoading ? "grid" : "none";
   if (isLoading) {
     els.feedList.innerHTML = "";
     els.featuredSlot.hidden = true;

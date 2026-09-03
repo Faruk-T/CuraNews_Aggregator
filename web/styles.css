@@ -26,6 +26,10 @@
   --base-size: 16px;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 /* ========================================================
    TEMALAR: LIGHT, SEPYA (MEMUR/YAŞLI DOSTU), DARK, CONTRAST
    ======================================================== */
@@ -1185,6 +1189,10 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.4rem;
+}
+
+.skeleton-grid[hidden] {
+  display: none !important;
 }
 
 .skel {
