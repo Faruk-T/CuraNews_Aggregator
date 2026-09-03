@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-theme="dark" data-font-size="md">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CuraNews — Kürate haber masası</title>
+    <title>CuraNews — Akıllı Haber Kürasyonu & Son Dakika</title>
+    <meta name="description" content="Bundle tarzı akıllı haber akışı. Yapay zeka ile kategorize edilmiş, yaşlı ve memur dostu okuma modu, son dakika haberleri." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Outfit:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Outfit:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/ui/styles.css" />
@@ -20,40 +21,91 @@
       <span class="grain"></span>
     </div>
 
-    <nav class="topbar">
-      <a class="wordmark" href="/ui/">
-        <span class="wordmark-mark">C</span>
-        <span class="wordmark-text">CuraNews</span>
-      </a>
-      <div class="topbar-meta">
+    <!-- Top Leaderboard Reklam Alanı (Google AdSense / Sponsor Uyumlu) -->
+    <aside class="ad-leaderboard-wrap" id="topAdWrap">
+      <div class="ad-leaderboard">
+        <span class="ad-tag">SPONSORLU ALAN · 728x90</span>
+        <div class="ad-content">
+          <p class="ad-headline">📢 <strong>CuraNews Pro:</strong> Reklamsız ve anlık bildirimli haber deneyimi yakında yayında!</p>
+          <a href="#feedList" class="ad-btn">Hemen İncele</a>
+        </div>
+        <button type="button" class="ad-close" id="topAdClose" title="Reklamı Kapat" aria-label="Reklamı kapat">×</button>
+      </div>
+    </aside>
+
+    <!-- Üst Navigasyon Çubuğu -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <a class="wordmark" href="/ui/">
+          <span class="wordmark-mark">C</span>
+          <span class="wordmark-text">CuraNews</span>
+          <span class="wordmark-badge">Bundle</span>
+        </a>
+      </div>
+
+      <!-- Memur & Yaşlı Dostu Erişilebilirlik ve Okuma Kontrolleri -->
+      <div class="reading-controls" aria-label="Okuma ve Tema Tercihleri">
+        <div class="font-scale-group" role="group" aria-label="Metin boyutu ayarla">
+          <span class="control-label" title="Yazı Boyutu">Metin:</span>
+          <button type="button" class="font-btn" data-size="sm" title="Küçük Boyut">A-</button>
+          <button type="button" class="font-btn is-active" data-size="md" title="Standart Boyut">A</button>
+          <button type="button" class="font-btn" data-size="lg" title="Büyük Boyut (Memur/Okur)">A+</button>
+          <button type="button" class="font-btn" data-size="xl" title="Ekstra Büyük (Kolay Okuma)">A++</button>
+        </div>
+
+        <div class="theme-switch-group" role="group" aria-label="Tema seçin">
+          <button type="button" class="theme-btn" data-theme="light" title="Aydınlık Tema">☀️ Açık</button>
+          <button type="button" class="theme-btn" data-theme="sepya" title="Memur Masası / Sepya Gazete Kağıdı">📜 Sepya</button>
+          <button type="button" class="theme-btn is-active" data-theme="dark" title="Gece / Koyu Tema">🌙 Koyu</button>
+          <button type="button" class="theme-btn" data-theme="contrast" title="Yüksek Kontrast">👁️ Kontrast</button>
+        </div>
+
         <p id="liveClock" class="clock">—</p>
+      </div>
+    </header>
+
+    <!-- Son Dakika Kayan Bandı (Breaking News Ticker) -->
+    <div class="breaking-banner" id="breakingBanner">
+      <div class="breaking-badge">
+        <span class="pulse-dot-red" aria-hidden="true"></span>
+        SON DAKİKA
+      </div>
+      <div class="breaking-ticker" id="breakingTicker">
+        <span class="ticker-text" id="breakingText">Günün öne çıkan gelişmeleri yükleniyor…</span>
+      </div>
+      <button type="button" class="btn-ticker-view" id="breakingOpenBtn">Haberi Oku →</button>
+    </div>
+
+    <!-- Bundle.app Tarzı Kategori Sekmeleri Çubuğu -->
+    <nav class="category-navbar" aria-label="Haber Kategorileri">
+      <div class="category-scroll" id="categoryScroll">
+        <button type="button" class="cat-pill is-active" data-category="">🔥 Tümü</button>
+        <button type="button" class="cat-pill" data-category="gundem">🇹🇷 Gündem</button>
+        <button type="button" class="cat-pill" data-category="ekonomi">📈 Ekonomi</button>
+        <button type="button" class="cat-pill" data-category="teknoloji">💻 Teknoloji</button>
+        <button type="button" class="cat-pill" data-category="spor">⚽ Spor</button>
+        <button type="button" class="cat-pill" data-category="saglik">🏥 Sağlık</button>
+        <button type="button" class="cat-pill" data-category="dunya">🌍 Dünya</button>
+        <button type="button" class="cat-pill" data-category="politika">🏛️ Politika</button>
       </div>
     </nav>
 
-    <header class="masthead">
-      <p class="kicker">
-        <span class="pulse-dot" aria-hidden="true"></span>
-        Canlı kürasyon · TRT · A Haber · NTV Spor · Hürriyet · AA · BBC
-      </p>
-      <h1 class="brand">
-        <span class="brand-line">Haber</span>
-        <span class="brand-line accent">sana göre</span>
-        <span class="brand-line">sıralanır.</span>
-      </h1>
-      <p class="lede">
-        Yayınevi RSS’lerinden toplanır, profiline göre puanlanır. Okudukların 20 dakika ana akışta yeşil kalır, sonra Okunanlar’a geçer.
-      </p>
-    </header>
-
+    <!-- Kontrol Masası / Okur Profili ve Arama -->
     <section class="desk" aria-label="Masa kontrolleri">
       <div class="personas" role="group" aria-label="Okur profili">
         <button type="button" class="persona is-active" data-user="demo-user-a">
-          <span class="persona-name">Ada</span>
-          <span class="persona-role">Ekonomi · AI</span>
+          <span class="persona-avatar">Ada</span>
+          <span class="persona-info">
+            <span class="persona-name">Ada</span>
+            <span class="persona-role">Ekonomi · AI</span>
+          </span>
         </button>
         <button type="button" class="persona" data-user="demo-user-b">
-          <span class="persona-name">Deniz</span>
-          <span class="persona-role">Spor · İklim</span>
+          <span class="persona-avatar">Deniz</span>
+          <span class="persona-info">
+            <span class="persona-name">Deniz</span>
+            <span class="persona-role">Spor · İklim</span>
+          </span>
         </button>
       </div>
 
@@ -65,14 +117,15 @@
 
       <label class="search-field">
         <span class="sr-only">Haber ara</span>
-        <input id="searchInput" type="search" placeholder="Başlık, kaynak veya konu ara…" autocomplete="off" />
+        <input id="searchInput" type="search" placeholder="Haber, başlık, yazar veya etiket ara…" autocomplete="off" />
       </label>
 
-      <button type="button" id="refreshBtn" class="btn secondary">Yenile</button>
+      <button type="button" id="refreshBtn" class="btn secondary">
+        <span class="btn-icon">↻</span> Yenile
+      </button>
     </section>
 
-    <div id="topicCloud" class="topic-cloud" aria-label="Konu filtresi"></div>
-    <label class="sr-only" for="topicSelect">Konu filtresi</label>
+    <div id="topicCloud" class="topic-cloud" aria-label="Konu etiketleri"></div>
     <select id="topicSelect" class="sr-only">
       <option value="">Tümü</option>
     </select>
@@ -80,23 +133,30 @@
     <div id="status" class="toast status" hidden role="status"></div>
     <div id="error" class="toast error" hidden role="alert"></div>
 
-    <main>
+    <main id="mainContent">
       <section class="feed-section">
         <div class="feed-meta">
           <div>
-            <p class="section-kicker">Kürate akış</p>
-            <h2 id="feedHeading">Senin masan</h2>
+            <p class="section-kicker" id="sectionKicker">Bundle Canlı Akış</p>
+            <h2 id="feedHeading">Senin Masan</h2>
           </div>
-          <p id="feedCount" class="feed-count">—</p>
+          <div class="feed-stats">
+            <p id="feedCount" class="feed-count">—</p>
+          </div>
         </div>
 
         <div class="view-tabs" role="tablist" aria-label="Akış görünümü">
-          <button type="button" class="chip is-active" id="viewAll" data-view="all">Akış</button>
-          <button type="button" class="chip" id="viewRead" data-view="read">Okunanlar</button>
+          <button type="button" class="chip is-active" id="viewAll" data-view="all">📰 Tüm Akış</button>
+          <button type="button" class="chip" id="viewRead" data-view="read">✅ Okunanlar</button>
         </div>
 
+        <!-- Öne Çıkan Manşet Haber -->
         <article id="featuredSlot" class="featured" hidden></article>
+
+        <!-- Haber Listesi Grid -->
         <ol id="feedList" class="feed-grid"></ol>
+
+        <!-- Yükleme İskeleti -->
         <div id="skeleton" class="skeleton-grid" hidden>
           <div class="skel skel-feature"></div>
           <div class="skel"></div>
@@ -104,19 +164,81 @@
           <div class="skel"></div>
           <div class="skel"></div>
         </div>
-        <p id="emptyState" class="empty" hidden>Bu filtreye uygun haber yok. Konuyu veya aramayı temizle.</p>
+
+        <p id="emptyState" class="empty" hidden>Bu filtreye uygun haber bulunamadı. Kategori veya aramayı temizleyebilirsiniz.</p>
       </section>
     </main>
 
+    <!-- Site İçi Haber Detay Modali / In-Site Article Reader -->
+    <div id="articleModal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <div class="modal-source-info">
+            <span id="modalSourceLogo" class="source-logo-wrap"></span>
+            <div>
+              <p id="modalSourceName" class="modal-source-name">—</p>
+              <p class="modal-meta-line">
+                <span id="modalPublished"></span> · 
+                <span id="modalCategory" class="badge-cat"></span> · 
+                <span id="modalReadTime"></span>
+              </p>
+            </div>
+          </div>
+          <button type="button" id="modalCloseBtn" class="modal-close-btn" aria-label="Haberi Kapat">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div id="modalHeroWrap" class="modal-hero-wrap">
+            <img id="modalHeroImg" src="" alt="Haber görseli" class="modal-hero-img" />
+          </div>
+
+          <h1 id="modalTitle" class="modal-title">Haber Başlığı</h1>
+          <p id="modalSummary" class="modal-summary">Haber özeti</p>
+
+          <div id="modalContent" class="modal-content-body">
+            <!-- Paragraflar JS ile basılacak -->
+          </div>
+
+          <!-- Haber İçi Reklam / Sponsor Banner -->
+          <div class="in-article-ad">
+            <span class="ad-tag">SPONSORLU BAĞLANTI</span>
+            <p><strong>CuraNews Editör Masası:</strong> En tarafsız ve hızlı yerli haber derlemesi.</p>
+          </div>
+
+          <!-- Zorunlu Kaynak Atıf Alanı -->
+          <div class="modal-attribution">
+            <div class="attribution-badge">Resmi Kaynak Atfı</div>
+            <p class="attribution-text">
+              Bu haber, telif haklarına ve RSS yayın kurallarına saygı çerçevesinde 
+              <strong id="modalAttributionPublisher">—</strong> kaynağından alınarak listelenmiştir. 
+              Tüm hakları yayıncıya aittir.
+            </p>
+            <a id="modalExternalLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-external-source">
+              Orijinal Haberi Kaynağında Aç ↗
+            </a>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="modalMarkReadBtn" class="btn primary">Okundu Olarak İşaretle</button>
+          <button type="button" id="modalShareBtn" class="btn secondary">Bağlantıyı Kopyala</button>
+          <button type="button" id="modalDismissBtn" class="btn ghost">Kapat</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alt Bilgi / Footer -->
     <footer class="footer">
-      <p>CuraNews · resmi RSS, HTML kazıma yok</p>
-      <p>
-        <span id="cacheBadge" class="cache-badge">cache · —</span>
-        <span>·</span>
-        <a href="/docs">OpenAPI</a>
-        <span>·</span>
-        <a href="/health">/health</a>
-      </p>
+      <div class="footer-inner">
+        <p><strong>CuraNews</strong> · Resmi RSS syndication · Bundle App Stili Arayüz · Memur & Yaşlı Dostu</p>
+        <p>
+          <span id="cacheBadge" class="cache-badge">cache · —</span>
+          <span>·</span>
+          <a href="/docs">OpenAPI Dokümanı</a>
+          <span>·</span>
+          <a href="/health">Sağlık (/health)</a>
+        </p>
+      </div>
     </footer>
 
     <script src="/ui/app.js" type="module"></script>

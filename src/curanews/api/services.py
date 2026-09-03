@@ -26,6 +26,54 @@ def display_source_name(article: Article, source: Source | None) -> str:
     return source.name if source else "unknown"
 
 
+from curanews.nlp.categorizer import (
+    calculate_read_time,
+    categorize_text,
+    detect_breaking_news,
+    get_category_display_name,
+    normalize_category_name,
+)
+
+SOURCE_BRAND_COLORS: dict[str, tuple[str, str, str]] = {
+    # name_key: (bg_color, text_color, short_code)
+    "anadolu ajansı": ("#003B70", "#FFFFFF", "AA"),
+    "trt haber": ("#C8102E", "#FFFFFF", "TRT"),
+    "ntv": ("#00A3E0", "#FFFFFF", "NTV"),
+    "ntv spor": ("#0288D1", "#FFFFFF", "NTV SPOR"),
+    "bbc news": ("#121212", "#FFFFFF", "BBC"),
+    "bbc türkçe": ("#BB1919", "#FFFFFF", "BBC"),
+    "a haber": ("#00796B", "#FFFFFF", "A HABER"),
+    "a haber spor": ("#00897B", "#FFFFFF", "A SPOR"),
+    "the guardian": ("#052962", "#FFE500", "GUARDIAN"),
+    "al jazeera": ("#E06D00", "#FFFFFF", "AL JAZEERA"),
+    "dw türkçe": ("#002D5A", "#FFFFFF", "DW"),
+    "npr": ("#0C2340", "#FFFFFF", "NPR"),
+    "sözcü": ("#D32F2F", "#FFFFFF", "SÖZCÜ"),
+    "hürriyet": ("#E53935", "#FFFFFF", "HÜRRİYET"),
+    "cnn türk": ("#CC0000", "#FFFFFF", "CNN"),
+}
+
+
+def get_source_logo_svg(source_name: str) -> str:
+    """Generate lightweight inline SVG logo badge for news publishers."""
+    clean = source_name.lower().strip()
+    bg, fg, label = ("#2D3748", "#FFFFFF", source_name[:3].upper())
+    for key, (kbg, kfg, klabel) in SOURCE_BRAND_COLORS.items():
+        if key in clean or clean in key:
+            bg, fg, label = kbg, kfg, klabel
+            break
+
+    width = max(36, len(label) * 9 + 14)
+    return (
+        f"data:image/svg+xml;utf8,"
+        f"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='22' viewBox='0 0 {width} 22'>"
+        f"<rect width='{width}' height='22' rx='4' fill='{bg}'/>"
+        f"<text x='50%' y='15' fill='{fg}' font-family='system-ui,sans-serif' font-size='10' font-weight='800' "
+        f"text-anchor='middle' letter-spacing='0.5'>{label}</text>"
+        f"</svg>"
+    )
+
+
 def article_to_item(
     session: Session,
     article: Article,
@@ -36,13 +84,40 @@ def article_to_item(
 ) -> ArticleItem:
     source = session.get(Source, article.source_id)
     entities = EntityRepository(session).list_for_article(article.id)
+    source_name = display_source_name(article, source)
+    meta = article.raw_metadata or {}
+
+    # Category normalization or AI categorization
+    cat_slug = normalize_category_name(article.category)
+    if not cat_slug:
+        cat_slug, _ = categorize_text(
+            article.title,
+            summary=article.summary or "",
+            body=article.body or "",
+            default_category=article.category,
+        )
+    category_display = get_category_display_name(cat_slug)
+
+    # Image URL from metadata or enclosures
+    image_url = meta.get("image_url")
+
+    # Read time & breaking news status
+    is_breaking = bool(meta.get("is_breaking")) or detect_breaking_news(article.title, article.summary or "")
+    read_time = int(meta.get("read_time_minutes") or calculate_read_time(article.body or "", article.summary or ""))
+
     return ArticleItem(
         id=article.id,
         title=article.title,
         summary=article.summary,
+        body=article.body or article.summary,
         url=article.url,
-        source_name=display_source_name(article, source),
-        category=article.category,
+        source_name=source_name,
+        source_logo=get_source_logo_svg(source_name),
+        image_url=image_url,
+        category=cat_slug,
+        category_name=category_display,
+        is_breaking=is_breaking,
+        read_time_minutes=read_time,
         published_at=article.published_at,
         entities=[e.label for e in entities],
         score=score,
@@ -57,6 +132,7 @@ def list_articles_query(
     limit: int,
     offset: int,
     source: str | None = None,
+    category: str | None = None,
     q: str | None = None,
 ) -> tuple[list[Article], int]:
     stmt = select(Article)
@@ -64,6 +140,9 @@ def list_articles_query(
     if source:
         stmt = stmt.join(Source).where(Source.name == source)
         count_base = count_base.join(Source).where(Source.name == source)
+    if category:
+        stmt = stmt.where(Article.category == category)
+        count_base = count_base.where(Article.category == category)
     if q:
         pattern = f"%{q}%"
         stmt = stmt.where(Article.title.ilike(pattern))
