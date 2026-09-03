@@ -150,8 +150,8 @@ let inboxGraceSeconds = 20 * 60;
 let currentUser = {
   id: null,
   external_key: "demo-editor",
-  full_name: "Ahmet Yılmaz",
-  email: "editor@curanews.com",
+  full_name: "Faruk Tazeoğlu",
+  email: "faruk@curanews.com",
   role: "editor",
   avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
   preferences: { categories: ["gundem", "ekonomi", "teknoloji"] },
@@ -564,12 +564,12 @@ els.editorForm.addEventListener("submit", async (e) => {
   const payload = {
     title: els.editorTitle.value.trim(),
     category: els.editorCategory.value,
-    author_title: els.editorAuthorTitle.value.trim() || "Kıdemli Editör",
+    author_title: els.editorAuthorTitle.value.trim() || "Baş Editör & Kurucu",
     summary: els.editorSummary.value.trim(),
     body: els.editorBody.value.trim(),
     image_url: els.editorImgUrl.value.trim() || null,
     video_url: els.editorVideoUrl.value.trim() || null,
-    author_name: currentUser.full_name || "CuraNews Editörü",
+    author_name: currentUser.full_name || "Faruk Tazeoğlu",
     author_avatar: currentUser.avatar_url,
   };
 
@@ -628,7 +628,7 @@ els.tabLogin.addEventListener("click", () => {
 
 // Demo switchers for faculty & jury presentation
 els.btnSwitchEditor.addEventListener("click", () => {
-  loginUser("editor@curanews.com", "editor123");
+  loginUser("faruk@curanews.com", "editor123");
 });
 
 els.btnSwitchReader.addEventListener("click", () => {
@@ -734,8 +734,8 @@ function openArticleModal(item) {
   // Onedio-style author box (if editorial)
   if (item.is_editorial) {
     els.modalAuthorBox.hidden = false;
-    els.modalAuthorName.textContent = item.author_display || "Ahmet Yılmaz";
-    els.modalAuthorTitle.textContent = item.author_title || "Kıdemli Editör";
+    els.modalAuthorName.textContent = item.author_display || "Faruk Tazeoğlu";
+    els.modalAuthorTitle.textContent = item.author_title || "Baş Editör & Kurucu";
     els.modalAuthorAvatar.src = item.author_avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
   } else {
     els.modalAuthorBox.hidden = true;

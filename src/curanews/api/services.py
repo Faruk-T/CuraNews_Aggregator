@@ -10,6 +10,13 @@ from sqlalchemy.orm import Session
 from curanews.api.schemas import ArticleItem
 from curanews.db.entity_repository import EntityRepository
 from curanews.db.models import Article, Source
+from curanews.nlp.categorizer import (
+    calculate_read_time,
+    categorize_text,
+    detect_breaking_news,
+    get_category_display_name,
+    normalize_category_name,
+)
 
 
 def display_source_name(article: Article, source: Source | None) -> str:
@@ -25,14 +32,6 @@ def display_source_name(article: Article, source: Source | None) -> str:
             return label
     return source.name if source else "unknown"
 
-
-from curanews.nlp.categorizer import (
-    calculate_read_time,
-    categorize_text,
-    detect_breaking_news,
-    get_category_display_name,
-    normalize_category_name,
-)
 
 SOURCE_BRAND_COLORS: dict[str, tuple[str, str, str]] = {
     # name_key: (bg_color, text_color, short_code)
@@ -62,17 +61,17 @@ def get_source_logo_svg(source_name: str) -> str:
     for key, (kbg, kfg, klabel) in SOURCE_BRAND_COLORS.items():
         if key in clean or clean in key:
             bg, fg, label = kbg, kfg, klabel
-            break
-
-    width = max(36, len(label) * 9 + 14)
-    return (
+        width = max(36, len(label) * 9 + 14)
+    svg_txt = (
         f"data:image/svg+xml;utf8,"
-        f"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='22' viewBox='0 0 {width} 22'>"
+        f"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='22' "
+        f"viewBox='0 0 {width} 22'>"
         f"<rect width='{width}' height='22' rx='4' fill='{bg}'/>"
-        f"<text x='50%' y='15' fill='{fg}' font-family='system-ui,sans-serif' font-size='10' font-weight='800' "
-        f"text-anchor='middle' letter-spacing='0.5'>{label}</text>"
-        f"</svg>"
+        f"<text x='50%' y='15' fill='{fg}' font-family='system-ui,sans-serif' "
+        f"font-size='10' font-weight='800' text-anchor='middle' "
+        f"letter-spacing='0.5'>{label}</text></svg>"
     )
+    return svg_txt
 
 
 def article_to_item(
@@ -109,8 +108,10 @@ def article_to_item(
     author_avatar = meta.get("author_avatar")
 
     # Read time & breaking news status
-    is_breaking = bool(meta.get("is_breaking")) or detect_breaking_news(article.title, article.summary or "")
-    read_time = int(meta.get("read_time_minutes") or calculate_read_time(article.body or "", article.summary or ""))
+    has_breaking = bool(meta.get("is_breaking"))
+    is_breaking = has_breaking or detect_breaking_news(article.title, article.summary or "")
+    meta_rt = meta.get("read_time_minutes")
+    read_time = int(meta_rt or calculate_read_time(article.body or "", article.summary or ""))
 
     return ArticleItem(
         id=article.id,
@@ -125,26 +126,27 @@ def article_to_item(
         category=cat_slug,
         category_name=category_display,
         is_breaking=is_breaking,
+        read_time_minutes=read_time,
         is_editorial=is_editorial,
-        is_bookmarked=is_bookmarked,
-        comments_count=comments_count,
         author_display=article.author_display or meta.get("author_name"),
         author_title=author_title,
         author_avatar=author_avatar,
-        read_time_minutes=read_time,
         published_at=article.published_at,
-        entities=[e.label for e in entities],
+        scraped_at=article.scraped_at,
         score=score,
         read=read,
         read_at=read_at,
+        is_bookmarked=is_bookmarked,
+        comments_count=comments_count,
+        entities=[e.label for e in entities],
     )
 
 
-def list_articles_query(
+def list_articles(
     session: Session,
     *,
-    limit: int,
-    offset: int,
+    offset: int = 0,
+    limit: int = 50,
     source: str | None = None,
     category: str | None = None,
     q: str | None = None,
@@ -162,6 +164,7 @@ def list_articles_query(
         stmt = stmt.where(Article.title.ilike(pattern))
         count_base = count_base.where(Article.title.ilike(pattern))
 
-    rows = list(session.scalars(stmt.order_by(Article.scraped_at.desc()).offset(offset).limit(limit)).all())
+    ordered_stmt = stmt.order_by(Article.scraped_at.desc()).offset(offset).limit(limit)
+    rows = list(session.scalars(ordered_stmt).all())
     total = len(list(session.scalars(count_base).all()))
     return rows, total
