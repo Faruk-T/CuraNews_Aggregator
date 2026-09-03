@@ -1776,6 +1776,10 @@ body {
   animation: slideUpCookie 0.35s ease-out;
 }
 
+.cookie-banner[hidden] {
+  display: none !important;
+}
+
 @keyframes slideUpCookie {
   from {
     transform: translate(-50%, 40px);

@@ -160,6 +160,19 @@ let currentUser = {
 let authToken = localStorage.getItem("curanews_token") || null;
 
 // ========================================================
+// TELEMETRY & ANALYTICS (GA4)
+// ========================================================
+function trackEvent(eventName, params = {}) {
+  try {
+    if (typeof window.gtag === "function") {
+      window.gtag("event", eventName, params);
+    }
+  } catch (err) {
+    console.debug("[GA4] trackEvent:", err);
+  }
+}
+
+// ========================================================
 // AUTH & SESSION MANAGEMENT
 // ========================================================
 async function initAuth() {
@@ -238,68 +251,6 @@ function logoutUser() {
   setTimeout(() => showStatus(""), 2000);
   loadBookmarks();
   loadFeed();
-}
-
-// ========================================================
-// GOOGLE ANALYTICS 4 & IAB COOKIE / AD CONSENT (DAY 23)
-// ========================================================
-function trackEvent(eventName, params = {}) {
-  if (typeof window.gtag === "function") {
-    window.gtag("event", eventName, params);
-  }
-}
-
-function initCookieConsent() {
-  const consent = localStorage.getItem("curanews_cookie_consent");
-  if (!consent && els.cookieConsentBanner) {
-    els.cookieConsentBanner.hidden = false;
-  }
-
-  if (els.acceptCookiesBtn) {
-    els.acceptCookiesBtn.addEventListener("click", () => {
-      localStorage.setItem("curanews_cookie_consent", "all");
-      if (els.cookieConsentBanner) els.cookieConsentBanner.hidden = true;
-      trackEvent("cookie_consent_granted", { consent_type: "all" });
-    });
-  }
-
-  if (els.rejectCookiesBtn) {
-    els.rejectCookiesBtn.addEventListener("click", () => {
-      localStorage.setItem("curanews_cookie_consent", "essential");
-      if (els.cookieConsentBanner) els.cookieConsentBanner.hidden = true;
-      trackEvent("cookie_consent_granted", { consent_type: "essential" });
-    });
-  }
-
-  if (els.openPolicyBtn) {
-    els.openPolicyBtn.addEventListener("click", openPolicyModal);
-  }
-
-  if (els.footerPolicyLink) {
-    els.footerPolicyLink.addEventListener("click", openPolicyModal);
-  }
-
-  if (els.policyCloseBtn) {
-    els.policyCloseBtn.addEventListener("click", closePolicyModal);
-  }
-
-  if (els.policyDismissBtn) {
-    els.policyDismissBtn.addEventListener("click", closePolicyModal);
-  }
-}
-
-function openPolicyModal() {
-  if (els.policyModal) {
-    els.policyModal.hidden = false;
-    document.body.style.overflow = "hidden";
-  }
-}
-
-function closePolicyModal() {
-  if (els.policyModal) {
-    els.policyModal.hidden = true;
-    document.body.style.overflow = "";
-  }
 }
 
 // ========================================================
@@ -942,10 +893,17 @@ function renderSponsoredCard() {
       <h3 class="card-title">CuraNews Pro: Tarafsız ve Hızlı Haber Toplayıcı</h3>
       <p class="card-summary">En seçkin Türk ve dünya haber kaynaklarını tek ekranda toplayan yeni nesil haber masası deneyimi.</p>
       <div class="card-footer">
-        <button type="button" class="btn-read-modal" style="background:var(--accent);color:#082823;">İncele →</button>
+        <button type="button" class="btn-read-modal btn-sponsor-inspect" style="background:var(--accent);color:#082823;cursor:pointer;font-weight:700;">İncele →</button>
       </div>
     </div>
   `;
+  const btn = li.querySelector(".btn-sponsor-inspect");
+  if (btn) {
+    btn.onclick = () => {
+      trackEvent("ad_click", { ad_unit: "native_feed_sponsor", product: "CuraNews Pro" });
+      openPolicyModal();
+    };
+  }
   return li;
 }
 
@@ -1086,6 +1044,87 @@ function tickClock() {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// ========================================================
+// ÇEREZ & REKLAM İLKELERİ MODALİ (DAY 23)
+// ========================================================
+function openPolicyModal() {
+  if (els.policyModal) {
+    els.policyModal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+}
+
+function closePolicyModal() {
+  if (els.policyModal) {
+    els.policyModal.hidden = true;
+    document.body.style.overflow = "";
+  }
+}
+
+function initCookieConsent() {
+  const consent = localStorage.getItem("curanews_cookie_consent");
+
+  const hideBanner = () => {
+    if (els.cookieConsentBanner) {
+      els.cookieConsentBanner.hidden = true;
+      els.cookieConsentBanner.style.display = "none";
+    }
+  };
+
+  const showBanner = () => {
+    if (els.cookieConsentBanner) {
+      els.cookieConsentBanner.hidden = false;
+      els.cookieConsentBanner.style.display = "flex";
+    }
+  };
+
+  if (consent) {
+    hideBanner();
+  } else {
+    showBanner();
+  }
+
+  if (els.acceptCookiesBtn) {
+    els.acceptCookiesBtn.addEventListener("click", () => {
+      localStorage.setItem("curanews_cookie_consent", "all");
+      hideBanner();
+      trackEvent("cookie_consent_granted", { level: "all" });
+      showStatus("Tüm çerez tercihleri kabul edildi ve kaydedildi.");
+      setTimeout(() => showStatus(""), 3000);
+    });
+  }
+
+  if (els.rejectCookiesBtn) {
+    els.rejectCookiesBtn.addEventListener("click", () => {
+      localStorage.setItem("curanews_cookie_consent", "necessary");
+      hideBanner();
+      trackEvent("cookie_consent_granted", { level: "necessary" });
+      showStatus("Yalnızca temel çerezler aktif edildi.");
+      setTimeout(() => showStatus(""), 3000);
+    });
+  }
+
+  if (els.openPolicyBtn) {
+    els.openPolicyBtn.addEventListener("click", openPolicyModal);
+  }
+
+  if (els.footerPolicyLink) {
+    els.footerPolicyLink.addEventListener("click", openPolicyModal);
+  }
+
+  if (els.policyCloseBtn) {
+    els.policyCloseBtn.addEventListener("click", closePolicyModal);
+  }
+
+  if (els.policyDismissBtn) {
+    els.policyDismissBtn.addEventListener("click", () => {
+      localStorage.setItem("curanews_cookie_consent", "all");
+      hideBanner();
+      closePolicyModal();
+    });
+  }
 }
 
 // ========================================================
