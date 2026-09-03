@@ -26,6 +26,10 @@
   --base-size: 16px;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 /* ========================================================
    TEMALAR: LIGHT, SEPYA (MEMUR/YAŞLI DOSTU), DARK, CONTRAST
    ======================================================== */
@@ -879,6 +883,7 @@ body {
   margin: 0 0 1rem;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   flex: 1;
@@ -1184,6 +1189,10 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1.4rem;
+}
+
+.skeleton-grid[hidden] {
+  display: none !important;
 }
 
 .skel {
@@ -1752,4 +1761,83 @@ body {
   border-color: var(--brand);
   background: var(--paper-elevated);
 }
+
+/* ========================================================
+   DAY 23 STYLES: IAB/ADSENSE COOKIE BANNER & POLICY MODAL
+   ======================================================== */
+.cookie-banner {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(920px, calc(100% - 2rem));
+  background: var(--paper-elevated);
+  border: 1px solid var(--brand);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  padding: 1rem 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  z-index: 9999;
+  animation: slideUpCookie 0.35s ease-out;
+}
+
+.cookie-banner[hidden] {
+  display: none !important;
+}
+
+@keyframes slideUpCookie {
+  from {
+    transform: translate(-50%, 40px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .cookie-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    bottom: 0.8rem;
+  }
+}
+
+.cookie-content {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex: 1;
+}
+
+.cookie-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.cookie-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--ink-secondary);
+}
+
+.cookie-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.btn-sm {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 16px;
+}
+
 

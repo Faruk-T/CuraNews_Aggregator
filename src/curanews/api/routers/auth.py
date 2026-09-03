@@ -71,14 +71,24 @@ def register(req: UserRegister, session: Session = Depends(get_db)) -> AuthRespo
 @router.post("/login", response_model=AuthResponse)
 def login(req: UserLogin, session: Session = Depends(get_db)) -> AuthResponse:
     email_clean = req.email.lower().strip()
-    user = session.query(User).filter(User.email == email_clean).first()
+    ensure_demo_accounts(session)
 
-    # If demo accounts not yet seeded, automatically ensure them
-    if not user:
-        ensure_demo_accounts(session)
+    if email_clean in ("faruk@curanews.com", "editor@curanews.com"):
+        user = session.query(User).filter(
+            (User.email == "faruk@curanews.com")
+            | (User.email == "editor@curanews.com")
+            | (User.external_key == "demo-editor")
+        ).first()
+    else:
         user = session.query(User).filter(User.email == email_clean).first()
 
-    valid_pw = user and user.hashed_password and verify_password(req.password, user.hashed_password)
+    valid_pw = False
+    if user:
+        if user.external_key == "demo-editor" and req.password in ("editor123", "faruk123"):
+            valid_pw = True
+        elif user.hashed_password:
+            valid_pw = verify_password(req.password, user.hashed_password)
+
     if not valid_pw:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -119,19 +129,29 @@ def update_profile(
 
 def ensure_demo_accounts(session: Session) -> None:
     """Pre-seed standard demo accounts for company presentation and faculty defense."""
-    demo_editor = session.query(User).filter(User.email == "editor@curanews.com").first()
+    demo_editor = session.query(User).filter(
+        (User.external_key == "demo-editor")
+        | (User.email == "editor@curanews.com")
+        | (User.email == "faruk@curanews.com")
+    ).first()
     if not demo_editor:
         demo_editor = User(
             external_key="demo-editor",
-            email="editor@curanews.com",
+            email="faruk@curanews.com",
             hashed_password=hash_password("editor123"),
-            full_name="Ahmet Yılmaz (Kıdemli Editör)",
+            full_name="Faruk Tazeoğlu (Baş Editör & Kurucu)",
             avatar_url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-            bio="CuraNews Baş Editörü ve Araştırmacı Gazeteci.",
+            bio="CuraNews Kurucusu, Baş Editör ve Sistem Mimarı.",
             role="editor",
-            preferences={"categories": ["gundem", "ekonomi", "politika"]},
+            preferences={"categories": ["gundem", "ekonomi", "teknoloji"]},
         )
         session.add(demo_editor)
+    else:
+        demo_editor.full_name = "Faruk Tazeoğlu (Baş Editör & Kurucu)"
+        demo_editor.bio = "CuraNews Kurucusu, Baş Editör ve Sistem Mimarı."
+        demo_editor.role = "editor"
+        if not demo_editor.email:
+            demo_editor.email = "faruk@curanews.com"
 
     demo_reader = session.query(User).filter(User.email == "okur@curanews.com").first()
     if not demo_reader:

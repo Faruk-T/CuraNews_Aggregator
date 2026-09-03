@@ -30,8 +30,8 @@ def verify() -> None:
                 "Türkiye genelinde yapay zeka ve veri mühendisliğinde rekor büyüme kaydedildi.\n\n"
                 "Akademik araştırmalar sektörel üretim ve kamu dijitalleşmesiyle buluşuyor."
             ),
-            "author_name": "Ahmet Yılmaz",
-            "author_title": "Kıdemli Editör",
+            "author_name": "Faruk Tazeoğlu",
+            "author_title": "Baş Editör & Kurucu",
             "image_url": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800",
             "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         },

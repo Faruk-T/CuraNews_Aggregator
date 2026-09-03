@@ -122,6 +122,16 @@ const els = {
   loginEmail: document.getElementById("loginEmail"),
   loginPassword: document.getElementById("loginPassword"),
   profileLogoutBtn: document.getElementById("profileLogoutBtn"),
+
+  // Cookie & Ad Policies (Day 23)
+  cookieConsentBanner: document.getElementById("cookieConsentBanner"),
+  acceptCookiesBtn: document.getElementById("acceptCookiesBtn"),
+  rejectCookiesBtn: document.getElementById("rejectCookiesBtn"),
+  openPolicyBtn: document.getElementById("openPolicyBtn"),
+  policyModal: document.getElementById("policyModal"),
+  policyCloseBtn: document.getElementById("policyCloseBtn"),
+  policyDismissBtn: document.getElementById("policyDismissBtn"),
+  footerPolicyLink: document.getElementById("footerPolicyLink"),
 };
 
 // Application State
@@ -140,14 +150,27 @@ let inboxGraceSeconds = 20 * 60;
 let currentUser = {
   id: null,
   external_key: "demo-editor",
-  full_name: "Ahmet Yılmaz",
-  email: "editor@curanews.com",
+  full_name: "Faruk Tazeoğlu",
+  email: "faruk@curanews.com",
   role: "editor",
   avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
   preferences: { categories: ["gundem", "ekonomi", "teknoloji"] },
 };
 
 let authToken = localStorage.getItem("curanews_token") || null;
+
+// ========================================================
+// TELEMETRY & ANALYTICS (GA4)
+// ========================================================
+function trackEvent(eventName, params = {}) {
+  try {
+    if (typeof window.gtag === "function") {
+      window.gtag("event", eventName, params);
+    }
+  } catch (err) {
+    console.debug("[GA4] trackEvent:", err);
+  }
+}
 
 // ========================================================
 // AUTH & SESSION MANAGEMENT
@@ -258,6 +281,7 @@ function initAccessibility() {
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem("curanews_theme", theme);
+  trackEvent("theme_change", { theme });
   els.themeBtns.forEach((b) => b.classList.toggle("is-active", b.dataset.theme === theme));
 }
 
@@ -307,6 +331,7 @@ function showStatus(message) {
 
 function setLoading(isLoading) {
   els.skeleton.hidden = !isLoading;
+  els.skeleton.style.display = isLoading ? "grid" : "none";
   if (isLoading) {
     els.feedList.innerHTML = "";
     els.featuredSlot.hidden = true;
@@ -491,12 +516,12 @@ els.editorForm.addEventListener("submit", async (e) => {
   const payload = {
     title: els.editorTitle.value.trim(),
     category: els.editorCategory.value,
-    author_title: els.editorAuthorTitle.value.trim() || "Kıdemli Editör",
+    author_title: els.editorAuthorTitle.value.trim() || "Baş Editör & Kurucu",
     summary: els.editorSummary.value.trim(),
     body: els.editorBody.value.trim(),
     image_url: els.editorImgUrl.value.trim() || null,
     video_url: els.editorVideoUrl.value.trim() || null,
-    author_name: currentUser.full_name || "CuraNews Editörü",
+    author_name: currentUser.full_name || "Faruk Tazeoğlu",
     author_avatar: currentUser.avatar_url,
   };
 
@@ -555,7 +580,7 @@ els.tabLogin.addEventListener("click", () => {
 
 // Demo switchers for faculty & jury presentation
 els.btnSwitchEditor.addEventListener("click", () => {
-  loginUser("editor@curanews.com", "editor123");
+  loginUser("faruk@curanews.com", "editor123");
 });
 
 els.btnSwitchReader.addEventListener("click", () => {
@@ -606,8 +631,30 @@ function updateBreakingHeadline() {
 // ========================================================
 // SITE İÇİ HABER DETAY MODALİ (IN-SITE READER)
 // ========================================================
+function getCategoryFallbackImage(category) {
+  const c = (category || "").toLowerCase();
+  const map = {
+    ekonomi: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop",
+    teknoloji: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop",
+    spor: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop",
+    gundem: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop",
+    saglik: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop",
+    dunya: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop",
+    politika: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&auto=format&fit=crop",
+  };
+  return map[c] || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop";
+}
+
 function openArticleModal(item) {
   activeModalArticle = item;
+  trackEvent("article_view", {
+    article_id: item.id,
+    title: item.title,
+    category: item.category,
+    source: item.source_name,
+    is_editorial: Boolean(item.is_editorial),
+  });
+
   els.modalTitle.textContent = item.title;
   els.modalSummary.textContent = item.summary || "";
 
@@ -617,7 +664,7 @@ function openArticleModal(item) {
   els.modalExternalLink.href = item.url;
 
   if (item.source_logo) {
-    els.modalSourceLogo.innerHTML = `<img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" />`;
+    els.modalSourceLogo.innerHTML = `<img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" onerror="this.style.display='none';" />`;
   } else {
     els.modalSourceLogo.innerHTML = "";
   }
@@ -626,16 +673,14 @@ function openArticleModal(item) {
   els.modalCategory.textContent = item.category_name || "Gündem";
   els.modalReadTime.textContent = `${item.read_time_minutes || 1} dk okuma`;
 
-  // Hero image
-  if (item.image_url) {
-    els.modalHeroWrap.hidden = false;
-    els.modalHeroImg.src = item.image_url;
-    els.modalHeroImg.onerror = () => {
-      els.modalHeroWrap.hidden = true;
-    };
-  } else {
-    els.modalHeroWrap.hidden = true;
-  }
+  // Hero image with reliable category fallback
+  const fallbackHero = getCategoryFallbackImage(item.category);
+  const heroSrc = item.image_url || fallbackHero;
+  els.modalHeroWrap.hidden = false;
+  els.modalHeroImg.src = heroSrc;
+  els.modalHeroImg.onerror = () => {
+    els.modalHeroImg.src = fallbackHero;
+  };
 
   // Video embed (if present)
   if (item.video_url) {
@@ -653,8 +698,8 @@ function openArticleModal(item) {
   // Onedio-style author box (if editorial)
   if (item.is_editorial) {
     els.modalAuthorBox.hidden = false;
-    els.modalAuthorName.textContent = item.author_display || "Ahmet Yılmaz";
-    els.modalAuthorTitle.textContent = item.author_title || "Kıdemli Editör";
+    els.modalAuthorName.textContent = item.author_display || "Faruk Tazeoğlu";
+    els.modalAuthorTitle.textContent = item.author_title || "Baş Editör & Kurucu";
     els.modalAuthorAvatar.src = item.author_avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
   } else {
     els.modalAuthorBox.hidden = true;
@@ -760,12 +805,12 @@ function renderFeatured(item) {
   els.featuredSlot.hidden = false;
   els.featuredSlot.classList.toggle("is-read", Boolean(item.read));
 
-  const imgHtml = item.image_url
-    ? `<div class="featured-media"><img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.title)}" class="featured-img" onerror="this.parentElement.hidden=true;" /></div>`
-    : `<div class="featured-media" style="background:linear-gradient(135deg,#1f2937,#111827);display:grid;place-items:center;color:var(--muted);"><span style="font-size:3rem;">📰</span></div>`;
+  const fallbackFeatured = getCategoryFallbackImage(item.category);
+  const featuredSrc = item.image_url || fallbackFeatured;
+  const imgHtml = `<div class="featured-media"><img src="${escapeHtml(featuredSrc)}" alt="${escapeHtml(item.title)}" class="featured-img" onerror="this.src='${fallbackFeatured}';" /></div>`;
 
   const logoHtml = item.source_logo
-    ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" /></span>`
+    ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" onerror="this.style.display='none';" /></span>`
     : `<span class="badge-cat">${escapeHtml(item.source_name)}</span>`;
 
   const isBookmarked = bookmarkItems.some((b) => b.id === item.id) || Boolean(item.is_bookmarked);
@@ -804,12 +849,12 @@ function renderCard(item, index) {
   const li = document.createElement("li");
   li.className = `feed-item${item.read ? " is-read" : ""}`;
 
-  const imgHtml = item.image_url
-    ? `<div class="card-media"><img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.title)}" class="card-img" onerror="this.parentElement.hidden=true;" /></div>`
-    : "";
+  const fallbackCard = getCategoryFallbackImage(item.category);
+  const cardSrc = item.image_url || fallbackCard;
+  const imgHtml = `<div class="card-media"><img src="${escapeHtml(cardSrc)}" alt="${escapeHtml(item.title)}" class="card-img" onerror="this.src='${fallbackCard}';" /></div>`;
 
   const logoHtml = item.source_logo
-    ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" /></span>`
+    ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" onerror="this.style.display='none';" /></span>`
     : `<span class="badge-cat">${escapeHtml(item.source_name)}</span>`;
 
   const isBookmarked = bookmarkItems.some((b) => b.id === item.id) || Boolean(item.is_bookmarked);
@@ -861,10 +906,17 @@ function renderSponsoredCard() {
       <h3 class="card-title">CuraNews Pro: Tarafsız ve Hızlı Haber Toplayıcı</h3>
       <p class="card-summary">En seçkin Türk ve dünya haber kaynaklarını tek ekranda toplayan yeni nesil haber masası deneyimi.</p>
       <div class="card-footer">
-        <button type="button" class="btn-read-modal" style="background:var(--accent);color:#082823;">İncele →</button>
+        <button type="button" class="btn-read-modal btn-sponsor-inspect" style="background:var(--accent);color:#082823;cursor:pointer;font-weight:700;">İncele →</button>
       </div>
     </div>
   `;
+  const btn = li.querySelector(".btn-sponsor-inspect");
+  if (btn) {
+    btn.onclick = () => {
+      trackEvent("ad_click", { ad_unit: "native_feed_sponsor", product: "CuraNews Pro" });
+      openPolicyModal();
+    };
+  }
   return li;
 }
 
@@ -1008,10 +1060,92 @@ function tickClock() {
 }
 
 // ========================================================
+// ÇEREZ & REKLAM İLKELERİ MODALİ (DAY 23)
+// ========================================================
+function openPolicyModal() {
+  if (els.policyModal) {
+    els.policyModal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+}
+
+function closePolicyModal() {
+  if (els.policyModal) {
+    els.policyModal.hidden = true;
+    document.body.style.overflow = "";
+  }
+}
+
+function initCookieConsent() {
+  const consent = localStorage.getItem("curanews_cookie_consent");
+
+  const hideBanner = () => {
+    if (els.cookieConsentBanner) {
+      els.cookieConsentBanner.hidden = true;
+      els.cookieConsentBanner.style.display = "none";
+    }
+  };
+
+  const showBanner = () => {
+    if (els.cookieConsentBanner) {
+      els.cookieConsentBanner.hidden = false;
+      els.cookieConsentBanner.style.display = "flex";
+    }
+  };
+
+  if (consent) {
+    hideBanner();
+  } else {
+    showBanner();
+  }
+
+  if (els.acceptCookiesBtn) {
+    els.acceptCookiesBtn.addEventListener("click", () => {
+      localStorage.setItem("curanews_cookie_consent", "all");
+      hideBanner();
+      trackEvent("cookie_consent_granted", { level: "all" });
+      showStatus("Tüm çerez tercihleri kabul edildi ve kaydedildi.");
+      setTimeout(() => showStatus(""), 3000);
+    });
+  }
+
+  if (els.rejectCookiesBtn) {
+    els.rejectCookiesBtn.addEventListener("click", () => {
+      localStorage.setItem("curanews_cookie_consent", "necessary");
+      hideBanner();
+      trackEvent("cookie_consent_granted", { level: "necessary" });
+      showStatus("Yalnızca temel çerezler aktif edildi.");
+      setTimeout(() => showStatus(""), 3000);
+    });
+  }
+
+  if (els.openPolicyBtn) {
+    els.openPolicyBtn.addEventListener("click", openPolicyModal);
+  }
+
+  if (els.footerPolicyLink) {
+    els.footerPolicyLink.addEventListener("click", openPolicyModal);
+  }
+
+  if (els.policyCloseBtn) {
+    els.policyCloseBtn.addEventListener("click", closePolicyModal);
+  }
+
+  if (els.policyDismissBtn) {
+    els.policyDismissBtn.addEventListener("click", () => {
+      localStorage.setItem("curanews_cookie_consent", "all");
+      hideBanner();
+      closePolicyModal();
+    });
+  }
+}
+
+// ========================================================
 // INITIALIZATION
 // ========================================================
 async function init() {
   initAccessibility();
+  initCookieConsent();
   setupCategoryNavbar();
   await initAuth();
 

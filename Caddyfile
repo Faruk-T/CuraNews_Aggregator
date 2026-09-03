@@ -1,0 +1,35 @@
+# CuraNews Caddyfile — Production Reverse Proxy with Auto-SSL (Day 23)
+# Parameterized for custom domain or local IP fallback
+
+{$DOMAIN_NAME:localhost} {
+    # Automatic TLS certificate via Let's Encrypt / ZeroSSL
+    # In production, replace with your real email:
+    # email admin@{$DOMAIN_NAME:curanews.com}
+
+    # Compression for blazing fast delivery
+    encode zstd gzip
+
+    # Production Security Headers
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    }
+
+    # Reverse proxy to FastAPI / Uvicorn container
+    reverse_proxy api:8000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Logging
+    log {
+        output stdout
+        format console
+    }
+}
