@@ -664,7 +664,7 @@ function openArticleModal(item) {
   els.modalExternalLink.href = item.url;
 
   if (item.source_logo) {
-    els.modalSourceLogo.innerHTML = `<img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" />`;
+    els.modalSourceLogo.innerHTML = `<img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" onerror="this.style.display='none';" />`;
   } else {
     els.modalSourceLogo.innerHTML = "";
   }
@@ -810,7 +810,7 @@ function renderFeatured(item) {
   const imgHtml = `<div class="featured-media"><img src="${escapeHtml(featuredSrc)}" alt="${escapeHtml(item.title)}" class="featured-img" onerror="this.src='${fallbackFeatured}';" /></div>`;
 
   const logoHtml = item.source_logo
-    ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" /></span>`
+    ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" onerror="this.style.display='none';" /></span>`
     : `<span class="badge-cat">${escapeHtml(item.source_name)}</span>`;
 
   const isBookmarked = bookmarkItems.some((b) => b.id === item.id) || Boolean(item.is_bookmarked);
@@ -854,7 +854,7 @@ function renderCard(item, index) {
   const imgHtml = `<div class="card-media"><img src="${escapeHtml(cardSrc)}" alt="${escapeHtml(item.title)}" class="card-img" onerror="this.src='${fallbackCard}';" /></div>`;
 
   const logoHtml = item.source_logo
-    ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" /></span>`
+    ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" onerror="this.style.display='none';" /></span>`
     : `<span class="badge-cat">${escapeHtml(item.source_name)}</span>`;
 
   const isBookmarked = bookmarkItems.some((b) => b.id === item.id) || Boolean(item.is_bookmarked);

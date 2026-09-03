@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 from datetime import datetime
 
 from sqlalchemy import select
@@ -65,18 +66,131 @@ CATEGORY_FALLBACK_IMAGES: dict[str, str] = {
 }
 
 
+def _b64_svg(svg_xml: str) -> str:
+    encoded = base64.b64encode(svg_xml.strip().encode("utf-8")).decode("ascii")
+    return f"data:image/svg+xml;base64,{encoded}"
+
+
 def get_source_logo_svg(source_name: str) -> str:
-    """Generate lightweight inline SVG logo badge for news publishers."""
+    """Generate authentic, base64-encoded SVG brand logo for news publishers."""
     clean = source_name.lower().strip()
-    bg, fg, label = ("#2D3748", "#FFFFFF", source_name[:3].upper())
+
+    if "cnn" in clean:
+        return _b64_svg(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='88' height='22' viewBox='0 0 88 22'>"
+            "<rect width='88' height='22' rx='4' fill='#CC0000'/>"
+            "<text x='28' y='16' fill='#FFFFFF' font-family='Impact,sans-serif' "
+            "font-size='14' font-weight='900'>CNN</text>"
+            "<line x1='56' y1='4' x2='56' y2='18' "
+            "stroke='rgba(255,255,255,0.4)' stroke-width='1.5'/>"
+            "<text x='71' y='15' fill='#FFFFFF' font-family='system-ui,sans-serif' "
+            "font-size='9' font-weight='800' text-anchor='middle'>TÜRK</text>"
+            "</svg>"
+        )
+
+    if "trt" in clean:
+        return _b64_svg(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='82' height='22' viewBox='0 0 82 22'>"
+            "<rect width='82' height='22' rx='4' fill='#C8102E'/>"
+            "<text x='26' y='16' fill='#FFFFFF' font-family='system-ui,sans-serif' "
+            "font-size='13' font-weight='900'>TRT</text>"
+            "<text x='62' y='15' fill='#FFFFFF' font-family='system-ui,sans-serif' "
+            "font-size='8.5' font-weight='800' text-anchor='middle'>HABER</text>"
+            "</svg>"
+        )
+
+    if "ntv" in clean:
+        return _b64_svg(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='58' height='22' viewBox='0 0 58 22'>"
+            "<rect width='58' height='22' rx='4' fill='#00A3E0'/>"
+            "<text x='50%' y='16' fill='#FFFFFF' font-family='system-ui,sans-serif' "
+            "font-size='13' font-weight='900' text-anchor='middle' letter-spacing='1'>NTV</text>"
+            "</svg>"
+        )
+
+    if "anadolu" in clean or clean == "aa":
+        return _b64_svg(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='52' height='22' viewBox='0 0 52 22'>"
+            "<rect width='52' height='22' rx='4' fill='#003B70'/>"
+            "<text x='50%' y='16' fill='#FFFFFF' font-family='system-ui,sans-serif' "
+            "font-size='14' font-weight='900' text-anchor='middle' letter-spacing='1'>AA</text>"
+            "</svg>"
+        )
+
+    if "habertürk" in clean or "haberturk" in clean:
+        return _b64_svg(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='92' height='22' viewBox='0 0 92 22'>"
+            "<rect width='92' height='22' rx='4' fill='#1B365D'/>"
+            "<text x='50%' y='15' fill='#FFFFFF' font-family='system-ui,sans-serif' "
+            "font-size='10' font-weight='900' text-anchor='middle' "
+            "letter-spacing='0.5'>HABERTÜRK</text>"
+            "</svg>"
+        )
+
+    if "hürriyet" in clean or "hurriyet" in clean:
+        return _b64_svg(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='82' height='22' viewBox='0 0 82 22'>"
+            "<rect width='82' height='22' rx='4' fill='#E53935'/>"
+            "<text x='50%' y='15' fill='#FFFFFF' font-family='Georgia,serif' "
+            "font-size='10.5' font-weight='900' text-anchor='middle' "
+            "letter-spacing='0.5'>HÜRRİYET</text>"
+            "</svg>"
+        )
+
+    if "milliyet" in clean:
+        return _b64_svg(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='78' height='22' viewBox='0 0 78 22'>"
+            "<rect width='78' height='22' rx='4' fill='#C62828'/>"
+            "<text x='50%' y='15' fill='#FFFFFF' font-family='Georgia,serif' "
+            "font-size='11' font-weight='900' text-anchor='middle' "
+            "letter-spacing='0.5'>MİLLİYET</text>"
+            "</svg>"
+        )
+
+    if "sözcü" in clean or "sozcu" in clean:
+        return _b64_svg(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='72' height='22' viewBox='0 0 72 22'>"
+            "<rect width='72' height='22' rx='4' fill='#D32F2F'/>"
+            "<text x='50%' y='16' fill='#FFFFFF' font-family='system-ui,sans-serif' "
+            "font-size='12' font-weight='900' text-anchor='middle' "
+            "letter-spacing='0.5'>SÖZCÜ</text>"
+            "</svg>"
+        )
+
+    if "bbc" in clean:
+        return _b64_svg(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='70' height='22' viewBox='0 0 70 22'>"
+            "<rect x='2' y='2' width='18' height='18' rx='2' fill='#000000'/>"
+            "<text x='11' y='16' fill='#FFFFFF' font-family='system-ui,sans-serif' "
+            "font-size='12' font-weight='900' text-anchor='middle'>B</text>"
+            "<rect x='24' y='2' width='18' height='18' rx='2' fill='#000000'/>"
+            "<text x='33' y='16' fill='#FFFFFF' font-family='system-ui,sans-serif' "
+            "font-size='12' font-weight='900' text-anchor='middle'>B</text>"
+            "<rect x='46' y='2' width='18' height='18' rx='2' fill='#000000'/>"
+            "<text x='55' y='16' fill='#FFFFFF' font-family='system-ui,sans-serif' "
+            "font-size='12' font-weight='900' text-anchor='middle'>C</text>"
+            "</svg>"
+        )
+
+    if "curanews" in clean or "editör" in clean:
+        return _b64_svg(
+            "<svg xmlns='http://www.w3.org/2000/svg' width='92' height='22' viewBox='0 0 92 22'>"
+            "<rect width='92' height='22' rx='4' fill='#E11D48'/>"
+            "<text x='50%' y='15' fill='#FFFFFF' font-family='system-ui,sans-serif' "
+            "font-size='10' font-weight='900' text-anchor='middle' "
+            "letter-spacing='0.5'>CURANEWS</text>"
+            "</svg>"
+        )
+
+    # Dynamic fallback badge
+    bg, fg, label = ("#2D3748", "#FFFFFF", source_name[:4].upper())
     for key, (kbg, kfg, klabel) in SOURCE_BRAND_COLORS.items():
         if key in clean or clean in key:
             bg, fg, label = kbg, kfg, klabel
             break
 
-    width = max(36, len(label) * 9 + 14)
-    svg_txt = (
-        f"data:image/svg+xml;utf8,"
+    width = max(38, len(label) * 9 + 14)
+    raw = (
         f"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='22' "
         f"viewBox='0 0 {width} 22'>"
         f"<rect width='{width}' height='22' rx='4' fill='{bg}'/>"
@@ -84,7 +198,7 @@ def get_source_logo_svg(source_name: str) -> str:
         f"font-size='10' font-weight='800' text-anchor='middle' "
         f"letter-spacing='0.5'>{label}</text></svg>"
     )
-    return svg_txt
+    return _b64_svg(raw)
 
 
 def article_to_item(
