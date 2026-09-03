@@ -9,7 +9,17 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from curanews import __version__
-from curanews.api.routers import articles, feed, health, reads, topics
+from curanews.api.routers import (
+    articles,
+    auth,
+    bookmarks,
+    comments,
+    editor,
+    feed,
+    health,
+    reads,
+    topics,
+)
 from curanews.config import get_settings
 
 WEB_DIR = Path(__file__).resolve().parents[3] / "web"
@@ -23,6 +33,10 @@ def create_app() -> FastAPI:
         description="CuraNews Aggregator REST API — Phase 4 (G16+).",
     )
     app.include_router(health.router)
+    app.include_router(auth.router)
+    app.include_router(bookmarks.router)
+    app.include_router(comments.router)
+    app.include_router(editor.router)
     app.include_router(articles.router)
     app.include_router(feed.router)
     app.include_router(reads.router)

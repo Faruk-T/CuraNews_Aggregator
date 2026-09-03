@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CuraNews — Akıllı Haber Kürasyonu & Son Dakika</title>
-    <meta name="description" content="Bundle tarzı akıllı haber akışı. Yapay zeka ile kategorize edilmiş, yaşlı ve memur dostu okuma modu, son dakika haberleri." />
+    <title>CuraNews — Akıllı Haber Kürasyonu, Topluluk & Editör Masası</title>
+    <meta name="description" content="Bundle tarzı akıllı haber akışı, Onedio stili editör masası, kullanıcı girişi, yorumlar ve memur dostu okuma deneyimi." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -26,7 +26,7 @@
       <div class="ad-leaderboard">
         <span class="ad-tag">SPONSORLU ALAN · 728x90</span>
         <div class="ad-content">
-          <p class="ad-headline">📢 <strong>CuraNews Pro:</strong> Reklamsız ve anlık bildirimli haber deneyimi yakında yayında!</p>
+          <p class="ad-headline">📢 <strong>CuraNews Pro:</strong> Üniversite ve kamu kurumları için yapay zeka destekli bülten aboneliği başladı.</p>
           <a href="#feedList" class="ad-btn">Hemen İncele</a>
         </div>
         <button type="button" class="ad-close" id="topAdClose" title="Reklamı Kapat" aria-label="Reklamı kapat">×</button>
@@ -41,6 +41,20 @@
           <span class="wordmark-text">CuraNews</span>
           <span class="wordmark-badge">Bundle</span>
         </a>
+      </div>
+
+      <!-- Orta Kısım: Editör ve Kullanıcı Butonları -->
+      <div class="topbar-actions">
+        <button type="button" id="openEditorBtn" class="btn-editor-top">
+          <span class="btn-icon">✍️</span>
+          <span>Editör Masası</span>
+        </button>
+
+        <button type="button" id="userProfileBtn" class="btn-user-profile">
+          <img id="topbarAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100" alt="Profil" class="user-topbar-avatar" />
+          <span id="topbarUserName" class="user-topbar-name">Giriş Yap</span>
+          <span id="topbarUserRole" class="badge-role">Editör</span>
+        </button>
       </div>
 
       <!-- Memur & Yaşlı Dostu Erişilebilirlik ve Okuma Kontrolleri -->
@@ -147,6 +161,7 @@
 
         <div class="view-tabs" role="tablist" aria-label="Akış görünümü">
           <button type="button" class="chip is-active" id="viewAll" data-view="all">📰 Tüm Akış</button>
+          <button type="button" class="chip" id="viewBookmarks" data-view="bookmarks">⭐ Favorilerim (<span id="bookmarkCount">0</span>)</button>
           <button type="button" class="chip" id="viewRead" data-view="read">✅ Okunanlar</button>
         </div>
 
@@ -184,7 +199,10 @@
               </p>
             </div>
           </div>
-          <button type="button" id="modalCloseBtn" class="modal-close-btn" aria-label="Haberi Kapat">✕</button>
+          <div class="modal-header-actions">
+            <button type="button" id="modalBookmarkBtn" class="btn-bookmark-action" title="Favorilere Ekle">⭐ Kaydet</button>
+            <button type="button" id="modalCloseBtn" class="modal-close-btn" aria-label="Haberi Kapat">✕</button>
+          </div>
         </div>
 
         <div class="modal-body">
@@ -192,12 +210,25 @@
             <img id="modalHeroImg" src="" alt="Haber görseli" class="modal-hero-img" />
           </div>
 
+          <!-- Video Embed (Eğer haberde video varsa) -->
+          <div id="modalVideoWrap" class="modal-video-wrap" hidden>
+            <iframe id="modalVideoIframe" src="" frameborder="0" allowfullscreen class="modal-video-iframe"></iframe>
+          </div>
+
+          <!-- Onedio Stili Yazar / Editör Künyesi Kutusu -->
+          <div id="modalAuthorBox" class="onedio-author-box" hidden>
+            <img id="modalAuthorAvatar" src="" alt="Editör" class="onedio-author-avatar" />
+            <div class="onedio-author-meta">
+              <div class="onedio-badge">CURANEWS EDİTÖR MASASI</div>
+              <h4 id="modalAuthorName" class="onedio-author-name">Ahmet Yılmaz</h4>
+              <p id="modalAuthorTitle" class="onedio-author-title">Kıdemli Editör</p>
+            </div>
+          </div>
+
           <h1 id="modalTitle" class="modal-title">Haber Başlığı</h1>
           <p id="modalSummary" class="modal-summary">Haber özeti</p>
 
-          <div id="modalContent" class="modal-content-body">
-            <!-- Paragraflar JS ile basılacak -->
-          </div>
+          <div id="modalContent" class="modal-content-body"></div>
 
           <!-- Haber İçi Reklam / Sponsor Banner -->
           <div class="in-article-ad">
@@ -217,6 +248,31 @@
               Orijinal Haberi Kaynağında Aç ↗
             </a>
           </div>
+
+          <!-- ========================================================
+               HABER ALTI YORUM SİSTEMİ (DAY 22)
+               ======================================================== -->
+          <section class="comments-section" id="commentsSection">
+            <div class="comments-header">
+              <h3 class="comments-title">💬 Okur Yorumları (<span id="commentsCount">0</span>)</h3>
+            </div>
+
+            <!-- Yorum Ekleme Formu -->
+            <form id="commentForm" class="comment-form">
+              <div class="comment-input-row">
+                <img id="commentUserAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80" alt="Sen" class="comment-avatar-small" />
+                <textarea id="commentText" placeholder="Bu haber hakkındaki düşüncelerinizi paylaşın..." rows="2" required maxlength="1000"></textarea>
+              </div>
+              <div class="comment-form-footer">
+                <button type="submit" class="btn primary btn-comment-submit">Yorum Yap</button>
+              </div>
+            </form>
+
+            <!-- Yorumlar Listesi -->
+            <div id="commentsList" class="comments-list">
+              <p class="comments-empty">Henüz yorum yapılmadı. İlk yorumu siz yazın!</p>
+            </div>
+          </section>
         </div>
 
         <div class="modal-footer">
@@ -227,10 +283,176 @@
       </div>
     </div>
 
+    <!-- ========================================================
+         ONEDIO STİLİ EDİTÖR CMS MODALİ (DAY 22)
+         ======================================================== -->
+    <div id="editorModal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="editorModalTitle">
+      <div class="modal-sheet modal-sheet-editor">
+        <div class="modal-header">
+          <div class="editor-header-title">
+            <span class="editor-icon">✍️</span>
+            <div>
+              <h2 id="editorModalTitle" class="modal-source-name">Editör Masası — Haber Girişi</h2>
+              <p class="modal-meta-line">Onedio Stili Özel Haber & Araştırma Dosyası Oluşturun</p>
+            </div>
+          </div>
+          <button type="button" id="editorCloseBtn" class="modal-close-btn" aria-label="Editör Kapat">✕</button>
+        </div>
+
+        <form id="editorForm" class="editor-form">
+          <div class="editor-body">
+            <div class="form-row">
+              <label for="editorTitle" class="form-label">Haber Başlığı *</label>
+              <input type="text" id="editorTitle" class="form-input" placeholder="Çarpıcı ve bilgilendirici başlık..." required minlength="5" />
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label for="editorCategory" class="form-label">Kategori *</label>
+                <select id="editorCategory" class="form-select" required>
+                  <option value="gundem">🇹🇷 Gündem</option>
+                  <option value="ekonomi">📈 Ekonomi</option>
+                  <option value="teknoloji" selected>💻 Teknoloji</option>
+                  <option value="spor">⚽ Spor</option>
+                  <option value="saglik">🏥 Sağlık</option>
+                  <option value="dunya">🌍 Dünya</option>
+                  <option value="politika">🏛️ Politika</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <label for="editorAuthorTitle" class="form-label">Yazar Unvanı</label>
+                <input type="text" id="editorAuthorTitle" class="form-input" value="Kıdemli Editör" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label for="editorSummary" class="form-label">Özet (Lead / Spot) *</label>
+              <textarea id="editorSummary" class="form-textarea" rows="2" placeholder="Haberin çarpıcı 1-2 cümlelik özeti..." required minlength="10"></textarea>
+            </div>
+
+            <div class="form-row">
+              <label for="editorBody" class="form-label">Haber Metni (Paragraflar) *</label>
+              <textarea id="editorBody" class="form-textarea" rows="7" placeholder="Haberin detaylı içeriğini girin. Paragraflar arasında bir boş satır bırakabilirsiniz..." required minlength="20"></textarea>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label for="editorImgUrl" class="form-label">Kapak Görseli URL'si</label>
+                <input type="url" id="editorImgUrl" class="form-input" placeholder="https://images.unsplash.com/..." />
+                <span class="form-hint">Depolama harcamadan doğrudan web linki hotlink edilir.</span>
+              </div>
+
+              <div class="form-row">
+                <label for="editorVideoUrl" class="form-label">Video / YouTube URL (Opsiyonel)</label>
+                <input type="url" id="editorVideoUrl" class="form-input" placeholder="https://www.youtube.com/watch?v=..." />
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="submit" class="btn primary btn-publish-news">🚀 Haberi Yayımla</button>
+            <button type="button" id="editorCancelBtn" class="btn ghost">Vazgeç</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         KULLANICI PROFİLİ & GİRİŞ MODALİ (DAY 22)
+         ======================================================== -->
+    <div id="profileModal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+      <div class="modal-sheet modal-sheet-profile">
+        <div class="modal-header">
+          <div class="modal-source-info">
+            <h2 id="profileModalTitle" class="modal-source-name">Kullanıcı Hesabı & Profil</h2>
+          </div>
+          <button type="button" id="profileCloseBtn" class="modal-close-btn" aria-label="Profil Kapat">✕</button>
+        </div>
+
+        <div class="profile-tabs" role="tablist">
+          <button type="button" class="profile-tab-btn is-active" id="tabProfile">👤 Profilim</button>
+          <button type="button" class="profile-tab-btn" id="tabLogin">🔑 Giriş / Kayıt</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Profil Görünümü -->
+          <div id="profileView" class="profile-view-content">
+            <div class="profile-hero">
+              <img id="profileAvatarImg" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" alt="Avatar" class="profile-avatar-large" />
+              <div class="profile-hero-meta">
+                <h3 id="profileFullName" class="profile-user-name">Ahmet Yılmaz</h3>
+                <p id="profileEmail" class="profile-user-email">editor@curanews.com</p>
+                <span id="profileRoleBadge" class="badge-role">Editör</span>
+              </div>
+            </div>
+
+            <!-- Okuma & Favori İstatistikleri -->
+            <div class="profile-stats-grid">
+              <div class="stat-card">
+                <span class="stat-number" id="statReadCount">0</span>
+                <span class="stat-title">Okunan Haber</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-number" id="statBookmarkCount">0</span>
+                <span class="stat-title">Favoriye Eklenen</span>
+              </div>
+            </div>
+
+            <!-- Kategori İlgi Alanları (Kişiselleştirilmiş Akış) -->
+            <div class="profile-interests-wrap">
+              <h4 class="interests-heading">Öncelikli İlgi Alanlarınız</h4>
+              <p class="interests-desc">Seçtiğiniz konular ana akışınızda en üstte puanlanır.</p>
+              <div class="interests-checkboxes" id="interestsContainer">
+                <label class="interest-check"><input type="checkbox" value="gundem" checked /> 🇹🇷 Gündem</label>
+                <label class="interest-check"><input type="checkbox" value="ekonomi" checked /> 📈 Ekonomi</label>
+                <label class="interest-check"><input type="checkbox" value="teknoloji" checked /> 💻 Teknoloji</label>
+                <label class="interest-check"><input type="checkbox" value="spor" /> ⚽ Spor</label>
+                <label class="interest-check"><input type="checkbox" value="saglik" /> 🏥 Sağlık</label>
+                <label class="interest-check"><input type="checkbox" value="dunya" /> 🌍 Dünya</label>
+              </div>
+              <button type="button" id="saveInterestsBtn" class="btn secondary btn-save-interests">Tercihleri Kaydet</button>
+            </div>
+
+            <!-- Hızlı Demo Hesap Değiştirici (Jüri & Mentor Sunumu İçin) -->
+            <div class="demo-switcher-box">
+              <p class="demo-switcher-title">🎯 Jüri & Mentor Demo Hesapları:</p>
+              <div class="demo-switcher-buttons">
+                <button type="button" class="btn-demo-switch" id="btnSwitchEditor">👨‍💼 Editör Hesabı (Ahmet Yılmaz)</button>
+                <button type="button" class="btn-demo-switch" id="btnSwitchReader">🏛️ Memur Okur Hesabı (Mehmet Özkan)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Giriş & Kayıt Formu -->
+          <div id="loginView" class="login-view-content" hidden>
+            <form id="authLoginForm" class="auth-form">
+              <div class="form-row">
+                <label for="loginEmail" class="form-label">E-Posta</label>
+                <input type="email" id="loginEmail" class="form-input" placeholder="ornek@curanews.com" required />
+              </div>
+              <div class="form-row">
+                <label for="loginPassword" class="form-label">Şifre</label>
+                <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required />
+              </div>
+              <div class="auth-actions">
+                <button type="submit" class="btn primary btn-block">Giriş Yap</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="profileLogoutBtn" class="btn ghost" style="color:var(--danger)">Çıkış Yap</button>
+          <button type="button" id="profileDismissBtn" class="btn secondary">Kapat</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Alt Bilgi / Footer -->
     <footer class="footer">
       <div class="footer-inner">
-        <p><strong>CuraNews</strong> · Resmi RSS syndication · Bundle App Stili Arayüz · Memur & Yaşlı Dostu</p>
+        <p><strong>CuraNews</strong> · Resmi RSS syndication · Onedio Editör Masası · Bundle App Stili Arayüz</p>
         <p>
           <span id="cacheBadge" class="cache-badge">cache · —</span>
           <span>·</span>
