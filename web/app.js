@@ -122,6 +122,16 @@ const els = {
   loginEmail: document.getElementById("loginEmail"),
   loginPassword: document.getElementById("loginPassword"),
   profileLogoutBtn: document.getElementById("profileLogoutBtn"),
+
+  // Cookie & Ad Policies (Day 23)
+  cookieConsentBanner: document.getElementById("cookieConsentBanner"),
+  acceptCookiesBtn: document.getElementById("acceptCookiesBtn"),
+  rejectCookiesBtn: document.getElementById("rejectCookiesBtn"),
+  openPolicyBtn: document.getElementById("openPolicyBtn"),
+  policyModal: document.getElementById("policyModal"),
+  policyCloseBtn: document.getElementById("policyCloseBtn"),
+  policyDismissBtn: document.getElementById("policyDismissBtn"),
+  footerPolicyLink: document.getElementById("footerPolicyLink"),
 };
 
 // Application State
@@ -231,6 +241,68 @@ function logoutUser() {
 }
 
 // ========================================================
+// GOOGLE ANALYTICS 4 & IAB COOKIE / AD CONSENT (DAY 23)
+// ========================================================
+function trackEvent(eventName, params = {}) {
+  if (typeof window.gtag === "function") {
+    window.gtag("event", eventName, params);
+  }
+}
+
+function initCookieConsent() {
+  const consent = localStorage.getItem("curanews_cookie_consent");
+  if (!consent && els.cookieConsentBanner) {
+    els.cookieConsentBanner.hidden = false;
+  }
+
+  if (els.acceptCookiesBtn) {
+    els.acceptCookiesBtn.addEventListener("click", () => {
+      localStorage.setItem("curanews_cookie_consent", "all");
+      if (els.cookieConsentBanner) els.cookieConsentBanner.hidden = true;
+      trackEvent("cookie_consent_granted", { consent_type: "all" });
+    });
+  }
+
+  if (els.rejectCookiesBtn) {
+    els.rejectCookiesBtn.addEventListener("click", () => {
+      localStorage.setItem("curanews_cookie_consent", "essential");
+      if (els.cookieConsentBanner) els.cookieConsentBanner.hidden = true;
+      trackEvent("cookie_consent_granted", { consent_type: "essential" });
+    });
+  }
+
+  if (els.openPolicyBtn) {
+    els.openPolicyBtn.addEventListener("click", openPolicyModal);
+  }
+
+  if (els.footerPolicyLink) {
+    els.footerPolicyLink.addEventListener("click", openPolicyModal);
+  }
+
+  if (els.policyCloseBtn) {
+    els.policyCloseBtn.addEventListener("click", closePolicyModal);
+  }
+
+  if (els.policyDismissBtn) {
+    els.policyDismissBtn.addEventListener("click", closePolicyModal);
+  }
+}
+
+function openPolicyModal() {
+  if (els.policyModal) {
+    els.policyModal.hidden = false;
+    document.body.style.overflow = "hidden";
+  }
+}
+
+function closePolicyModal() {
+  if (els.policyModal) {
+    els.policyModal.hidden = true;
+    document.body.style.overflow = "";
+  }
+}
+
+// ========================================================
 // THEME & ACCESSIBILITY (FONT SCALE & SEPYA/MEMUR MODU)
 // ========================================================
 function initAccessibility() {
@@ -258,6 +330,7 @@ function initAccessibility() {
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem("curanews_theme", theme);
+  trackEvent("theme_change", { theme });
   els.themeBtns.forEach((b) => b.classList.toggle("is-active", b.dataset.theme === theme));
 }
 
@@ -608,6 +681,14 @@ function updateBreakingHeadline() {
 // ========================================================
 function openArticleModal(item) {
   activeModalArticle = item;
+  trackEvent("article_view", {
+    article_id: item.id,
+    title: item.title,
+    category: item.category,
+    source: item.source_name,
+    is_editorial: Boolean(item.is_editorial),
+  });
+
   els.modalTitle.textContent = item.title;
   els.modalSummary.textContent = item.summary || "";
 
@@ -1012,6 +1093,7 @@ function tickClock() {
 // ========================================================
 async function init() {
   initAccessibility();
+  initCookieConsent();
   setupCategoryNavbar();
   await initAuth();
 

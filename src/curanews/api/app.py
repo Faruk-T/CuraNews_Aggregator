@@ -18,6 +18,7 @@ from curanews.api.routers import (
     feed,
     health,
     reads,
+    seo,
     topics,
 )
 from curanews.config import get_settings
@@ -33,6 +34,7 @@ def create_app() -> FastAPI:
         description="CuraNews Aggregator REST API — Phase 4 (G16+).",
     )
     app.include_router(health.router)
+    app.include_router(seo.router)
     app.include_router(auth.router)
     app.include_router(bookmarks.router)
     app.include_router(comments.router)
