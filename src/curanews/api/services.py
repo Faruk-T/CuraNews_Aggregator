@@ -50,7 +50,18 @@ SOURCE_BRAND_COLORS: dict[str, tuple[str, str, str]] = {
     "sözcü": ("#D32F2F", "#FFFFFF", "SÖZCÜ"),
     "hürriyet": ("#E53935", "#FFFFFF", "HÜRRİYET"),
     "cnn türk": ("#CC0000", "#FFFFFF", "CNN"),
+    "habertürk": ("#1B365D", "#FFFFFF", "HABERTÜRK"),
     "curanews editör masası": ("#E11D48", "#FFFFFF", "EDİTÖR"),
+}
+
+CATEGORY_FALLBACK_IMAGES: dict[str, str] = {
+    "ekonomi": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop",
+    "teknoloji": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop",
+    "spor": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop",
+    "gundem": "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop",
+    "saglik": "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop",
+    "dunya": "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop",
+    "politika": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&auto=format&fit=crop",
 }
 
 
@@ -61,7 +72,9 @@ def get_source_logo_svg(source_name: str) -> str:
     for key, (kbg, kfg, klabel) in SOURCE_BRAND_COLORS.items():
         if key in clean or clean in key:
             bg, fg, label = kbg, kfg, klabel
-        width = max(36, len(label) * 9 + 14)
+            break
+
+    width = max(36, len(label) * 9 + 14)
     svg_txt = (
         f"data:image/svg+xml;utf8,"
         f"<svg xmlns='http://www.w3.org/2000/svg' width='{width}' height='22' "
@@ -100,8 +113,16 @@ def article_to_item(
         )
     category_display = get_category_display_name(cat_slug)
 
-    # Image URL from metadata or enclosures
-    image_url = meta.get("image_url")
+    # Image URL from metadata or enclosures with editorial category fallback
+    raw_img = meta.get("image_url")
+    if raw_img and str(raw_img).strip():
+        image_url = str(raw_img).strip()
+    else:
+        image_url = CATEGORY_FALLBACK_IMAGES.get(
+            cat_slug,
+            "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop",
+        )
+
     video_url = meta.get("video_url")
     is_editorial = bool(meta.get("is_editorial"))
     author_title = meta.get("author_title")
@@ -168,3 +189,7 @@ def list_articles(
     rows = list(session.scalars(ordered_stmt).all())
     total = len(list(session.scalars(count_base).all()))
     return rows, total
+
+
+# Backward compatibility alias
+list_articles_query = list_articles

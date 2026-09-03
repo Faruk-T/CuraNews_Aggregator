@@ -630,6 +630,20 @@ function updateBreakingHeadline() {
 // ========================================================
 // SITE İÇİ HABER DETAY MODALİ (IN-SITE READER)
 // ========================================================
+function getCategoryFallbackImage(category) {
+  const c = (category || "").toLowerCase();
+  const map = {
+    ekonomi: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop",
+    teknoloji: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop",
+    spor: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop",
+    gundem: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop",
+    saglik: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop",
+    dunya: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop",
+    politika: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&auto=format&fit=crop",
+  };
+  return map[c] || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop";
+}
+
 function openArticleModal(item) {
   activeModalArticle = item;
   trackEvent("article_view", {
@@ -658,16 +672,14 @@ function openArticleModal(item) {
   els.modalCategory.textContent = item.category_name || "Gündem";
   els.modalReadTime.textContent = `${item.read_time_minutes || 1} dk okuma`;
 
-  // Hero image
-  if (item.image_url) {
-    els.modalHeroWrap.hidden = false;
-    els.modalHeroImg.src = item.image_url;
-    els.modalHeroImg.onerror = () => {
-      els.modalHeroWrap.hidden = true;
-    };
-  } else {
-    els.modalHeroWrap.hidden = true;
-  }
+  // Hero image with reliable category fallback
+  const fallbackHero = getCategoryFallbackImage(item.category);
+  const heroSrc = item.image_url || fallbackHero;
+  els.modalHeroWrap.hidden = false;
+  els.modalHeroImg.src = heroSrc;
+  els.modalHeroImg.onerror = () => {
+    els.modalHeroImg.src = fallbackHero;
+  };
 
   // Video embed (if present)
   if (item.video_url) {
@@ -792,9 +804,9 @@ function renderFeatured(item) {
   els.featuredSlot.hidden = false;
   els.featuredSlot.classList.toggle("is-read", Boolean(item.read));
 
-  const imgHtml = item.image_url
-    ? `<div class="featured-media"><img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.title)}" class="featured-img" onerror="this.parentElement.hidden=true;" /></div>`
-    : `<div class="featured-media" style="background:linear-gradient(135deg,#1f2937,#111827);display:grid;place-items:center;color:var(--muted);"><span style="font-size:3rem;">📰</span></div>`;
+  const fallbackFeatured = getCategoryFallbackImage(item.category);
+  const featuredSrc = item.image_url || fallbackFeatured;
+  const imgHtml = `<div class="featured-media"><img src="${escapeHtml(featuredSrc)}" alt="${escapeHtml(item.title)}" class="featured-img" onerror="this.src='${fallbackFeatured}';" /></div>`;
 
   const logoHtml = item.source_logo
     ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" /></span>`
@@ -836,9 +848,9 @@ function renderCard(item, index) {
   const li = document.createElement("li");
   li.className = `feed-item${item.read ? " is-read" : ""}`;
 
-  const imgHtml = item.image_url
-    ? `<div class="card-media"><img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.title)}" class="card-img" onerror="this.parentElement.hidden=true;" /></div>`
-    : "";
+  const fallbackCard = getCategoryFallbackImage(item.category);
+  const cardSrc = item.image_url || fallbackCard;
+  const imgHtml = `<div class="card-media"><img src="${escapeHtml(cardSrc)}" alt="${escapeHtml(item.title)}" class="card-img" onerror="this.src='${fallbackCard}';" /></div>`;
 
   const logoHtml = item.source_logo
     ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" /></span>`
