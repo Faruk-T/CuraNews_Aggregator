@@ -51,6 +51,7 @@ SOURCE_BRAND_COLORS: dict[str, tuple[str, str, str]] = {
     "sözcü": ("#D32F2F", "#FFFFFF", "SÖZCÜ"),
     "hürriyet": ("#E53935", "#FFFFFF", "HÜRRİYET"),
     "cnn türk": ("#CC0000", "#FFFFFF", "CNN"),
+    "curanews editör masası": ("#E11D48", "#FFFFFF", "EDİTÖR"),
 }
 
 
@@ -81,6 +82,8 @@ def article_to_item(
     score: float | None = None,
     read: bool = False,
     read_at: datetime | None = None,
+    is_bookmarked: bool = False,
+    comments_count: int = 0,
 ) -> ArticleItem:
     source = session.get(Source, article.source_id)
     entities = EntityRepository(session).list_for_article(article.id)
@@ -100,6 +103,10 @@ def article_to_item(
 
     # Image URL from metadata or enclosures
     image_url = meta.get("image_url")
+    video_url = meta.get("video_url")
+    is_editorial = bool(meta.get("is_editorial"))
+    author_title = meta.get("author_title")
+    author_avatar = meta.get("author_avatar")
 
     # Read time & breaking news status
     is_breaking = bool(meta.get("is_breaking")) or detect_breaking_news(article.title, article.summary or "")
@@ -114,9 +121,16 @@ def article_to_item(
         source_name=source_name,
         source_logo=get_source_logo_svg(source_name),
         image_url=image_url,
+        video_url=video_url,
         category=cat_slug,
         category_name=category_display,
         is_breaking=is_breaking,
+        is_editorial=is_editorial,
+        is_bookmarked=is_bookmarked,
+        comments_count=comments_count,
+        author_display=article.author_display or meta.get("author_name"),
+        author_title=author_title,
+        author_avatar=author_avatar,
         read_time_minutes=read_time,
         published_at=article.published_at,
         entities=[e.label for e in entities],
