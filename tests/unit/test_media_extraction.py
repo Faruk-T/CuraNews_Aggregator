@@ -51,14 +51,20 @@ def test_extract_image_from_embedded_html() -> None:
 
 
 def test_get_source_logo_svg() -> None:
+    import base64
+
     logo_aa = get_source_logo_svg("Anadolu Ajansı")
-    assert "data:image/svg+xml;utf8," in logo_aa
-    assert "AA" in logo_aa
-    assert "#003B70" in logo_aa
+    assert logo_aa.startswith("data:image/svg+xml;base64,")
+    decoded_aa = base64.b64decode(logo_aa.split(",", 1)[1]).decode("utf-8")
+    assert "AA" in decoded_aa
+    assert "#003B70" in decoded_aa
 
     logo_trt = get_source_logo_svg("TRT Haber")
-    assert "TRT" in logo_trt
-    assert "#C8102E" in logo_trt
+    assert logo_trt.startswith("data:image/svg+xml;base64,")
+    decoded_trt = base64.b64decode(logo_trt.split(",", 1)[1]).decode("utf-8")
+    assert "TRT" in decoded_trt
+    assert "#C8102E" in decoded_trt
 
     logo_generic = get_source_logo_svg("Özel Yerel Haber")
-    assert "data:image/svg+xml;utf8," in logo_generic
+    assert logo_generic.startswith("data:image/svg+xml;base64,")
+

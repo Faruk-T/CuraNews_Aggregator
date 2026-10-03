@@ -18,27 +18,38 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # 2. Check environment file
-if [ ! -f ".env.production" ]; then
-    echo "📄 .env.production oluşturuluyor..."
-    cp .env.example .env.production || true
+if [ ! -f ".env" ]; then
+    if [ -f ".env.production" ]; then
+        echo "📄 .env.production -> .env kopyalanıyor..."
+        cp .env.production .env
+    elif [ -f ".env.example" ]; then
+        echo "📄 .env.example -> .env kopyalanıyor..."
+        cp .env.example .env
+    fi
+fi
+
+ENV_FILE=".env"
+if [ ! -f "$ENV_FILE" ] && [ -f ".env.production" ]; then
+    ENV_FILE=".env.production"
 fi
 
 # 3. Pull & Build
 echo "📦 Docker konteynerleri inşa ediliyor (Multi-stage build)..."
-docker compose -f docker-compose.prod.yml build
+docker compose --env-file "$ENV_FILE" -f docker-compose.prod.yml build
 
 # 4. Start Stack
 echo "🌐 Servisler ayağa kaldırılıyor (Postgres, Redis, API, Caddy SSL)..."
-docker compose -f docker-compose.prod.yml up -d
+docker compose --env-file "$ENV_FILE" -f docker-compose.prod.yml up -d
+
 
 # 5. Run Database Migrations
 echo "🗄️ Veritabanı migrasyonları uygulanıyor (Alembic upgrade head)..."
-docker compose -f docker-compose.prod.yml exec -T api alembic upgrade head
+docker compose --env-file "$ENV_FILE" -f docker-compose.prod.yml exec -T api alembic upgrade head
 
 # 6. Status check
 echo "🔍 Sağlık kontrolleri yapılıyor..."
 sleep 5
-docker compose -f docker-compose.prod.yml ps
+docker compose --env-file "$ENV_FILE" -f docker-compose.prod.yml ps
 
 echo "=========================================================="
 echo " 🎉 CuraNews Canlı Dağıtımı Başarıyla Tamamlandı!"
