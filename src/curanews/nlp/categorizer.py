@@ -18,6 +18,9 @@ import math
 import re
 from typing import Final
 
+# Bump when keyword weights change so stored rows get re-scored on next startup.
+CATEGORIZER_VERSION: Final = 3
+
 CANONICAL_CATEGORIES: Final[dict[str, str]] = {
     "gundem": "Gündem",
     "ekonomi": "Ekonomi",
@@ -56,6 +59,10 @@ CATEGORY_WEIGHTS: Final[dict[str, dict[str, float]]] = {
         "fon": 1.8,
         "finans": 2.2,
         "economy": 2.5,
+        "ekonomi": 2.5,
+        "ekonomik": 2.2,
+        "cari açık": 3.0,
+        "büyüme": 1.5,
         "markets": 2.0,
         "inflation": 2.5,
         "interest rate": 2.5,
@@ -109,6 +116,20 @@ CATEGORY_WEIGHTS: Final[dict[str, dict[str, float]]] = {
         "league": 2.0,
         "sports": 2.5,
         "spor": 2.5,
+        "dünya kupası": 4.0,
+        "euroleague": 3.0,
+        "uefa": 3.0,
+        "fifa": 3.0,
+        "nba": 3.0,
+        "hakem": 2.0,
+        "tenis": 3.0,
+        "formula 1": 3.0,
+        "football": 2.5,
+        "cricket": 3.0,
+        "tennis": 3.0,
+        "wimbledon": 3.0,
+        "atp": 3.0,
+        "wta": 3.0,
     },
     "saglik": {
         "sağlık": 2.5,
@@ -128,6 +149,13 @@ CATEGORY_WEIGHTS: Final[dict[str, dict[str, float]]] = {
         "sağlık bakanlığı": 3.0,
         "health": 2.5,
         "medical": 2.5,
+        "cancer": 2.8,
+        "hospital": 2.2,
+        "disease": 2.2,
+        "vaccine": 2.5,
+        "ebola": 3.0,
+        "salgın": 2.5,
+        "epidemic": 2.5,
     },
     "politika": {
         "seçim": 2.5,
@@ -152,6 +180,9 @@ CATEGORY_WEIGHTS: Final[dict[str, dict[str, float]]] = {
         "rusya": 2.0,
         "ukrayna": 2.2,
         "israil": 2.2,
+        "netanyahu": 2.8,
+        "trump": 2.0,
+        "putin": 2.2,
         "gazze": 2.5,
         "filistin": 2.5,
         "avrupa birliği": 2.5,
@@ -166,6 +197,16 @@ CATEGORY_WEIGHTS: Final[dict[str, dict[str, float]]] = {
         "uluslararası": 2.0,
         "savaş": 2.0,
         "ateşkes": 2.5,
+        "israel": 2.2,
+        "israeli": 2.2,
+        "gaza": 2.5,
+        "west bank": 2.5,
+        "palestinian": 2.5,
+        "ukraine": 2.2,
+        "russia": 2.0,
+        "kyiv": 2.2,
+        "china": 1.8,
+        "united nations": 2.5,
     },
     "gundem": {
         "asayiş": 2.5,
@@ -184,6 +225,17 @@ CATEGORY_WEIGHTS: Final[dict[str, dict[str, float]]] = {
         "gündem": 2.0,
     },
 }
+
+_COMPILED_WEIGHTS: Final[dict[str, list[tuple[re.Pattern[str], float]]]] = {
+    cat: [(re.compile(r"(?<!\w)" + re.escape(kw) + r"(?!\w)"), w) for kw, w in kws.items()]
+    for cat, kws in CATEGORY_WEIGHTS.items()
+}
+
+
+def _fold(text: str) -> str:
+    # str.lower() turns "İ" into "i" + U+0307, which breaks matches like "İsrail".
+    return text.replace("İ", "i").lower()
+
 
 BREAKING_PATTERNS: Final[list[re.Pattern[str]]] = [
     re.compile(r"\bson\s*dakika\b", re.IGNORECASE),
@@ -214,39 +266,51 @@ def normalize_category_name(raw: str | None) -> str | None:
     """Normalize raw category names from RSS or legacy tags."""
     if not raw:
         return None
-    key = raw.strip().lower()
-    mapping = {
-        "gundem": "gundem",
-        "gündem": "gundem",
-        "turkey": "gundem",
-        "türkiye": "gundem",
-        "güncel": "gundem",
-        "general": "gundem",
-        "ekonomi": "ekonomi",
-        "economy": "ekonomi",
-        "finans": "ekonomi",
-        "markets": "ekonomi",
-        "teknoloji": "teknoloji",
-        "tech": "teknoloji",
-        "technology": "teknoloji",
-        "bilim": "teknoloji",
-        "science": "teknoloji",
-        "spor": "spor",
-        "sports": "spor",
-        "sport": "spor",
-        "futbol": "spor",
-        "saglik": "saglik",
-        "sağlık": "saglik",
-        "health": "saglik",
-        "dunya": "dunya",
-        "dünya": "dunya",
-        "world": "dunya",
-        "dış haberler": "dunya",
-        "politika": "politika",
-        "siyaset": "politika",
-        "politics": "politika",
-    }
-    return mapping.get(key)
+    return _CATEGORY_MAPPING.get(raw.strip().lower())
+
+
+def category_aliases(slug: str) -> list[str]:
+    """Raw category values stored in the database that map to ``slug``."""
+    canonical = normalize_category_name(slug) or slug.strip().lower()
+    aliases = {raw for raw, target in _CATEGORY_MAPPING.items() if target == canonical}
+    aliases.add(canonical)
+    return sorted(aliases)
+
+
+_CATEGORY_MAPPING: Final[dict[str, str]] = {
+    "gundem": "gundem",
+    "gündem": "gundem",
+    "turkey": "gundem",
+    "türkiye": "gundem",
+    "güncel": "gundem",
+    "general": "gundem",
+    "ekonomi": "ekonomi",
+    "economy": "ekonomi",
+    "finans": "ekonomi",
+    "markets": "ekonomi",
+    "teknoloji": "teknoloji",
+    "tech": "teknoloji",
+    "technology": "teknoloji",
+    "bilim": "teknoloji",
+    "science": "teknoloji",
+    "spor": "spor",
+    "sports": "spor",
+    "sport": "spor",
+    "futbol": "spor",
+    "basketbol": "spor",
+    "voleybol": "spor",
+    "tenis": "spor",
+    "saglik": "saglik",
+    "sağlık": "saglik",
+    "health": "saglik",
+    "dunya": "dunya",
+    "dünya": "dunya",
+    "world": "dunya",
+    "dış haberler": "dunya",
+    "politika": "politika",
+    "siyaset": "politika",
+    "politics": "politika",
+}
 
 
 def categorize_text(
@@ -268,19 +332,18 @@ def categorize_text(
         scores[normalized_default] += 1.5
 
     # Title has 3x weight, summary 1.5x, body 1x
-    title_lower = title.lower()
-    summary_lower = summary.lower()
-    body_lower = body.lower()
+    title_lower = _fold(title)
+    summary_lower = _fold(summary)
+    body_lower = _fold(body)
 
-    for cat, kw_dict in CATEGORY_WEIGHTS.items():
+    for cat, patterns in _COMPILED_WEIGHTS.items():
         cat_score = 0.0
-        for kw, weight in kw_dict.items():
-            pattern = r"(?<!\w)" + re.escape(kw) + r"(?!\w)"
-            if re.search(pattern, title_lower):
+        for pattern, weight in patterns:
+            if pattern.search(title_lower):
                 cat_score += weight * 3.0
-            if re.search(pattern, summary_lower):
+            if pattern.search(summary_lower):
                 cat_score += weight * 1.5
-            if body_lower and re.search(pattern, body_lower):
+            if body_lower and pattern.search(body_lower):
                 cat_score += weight * 1.0
         scores[cat] += cat_score
 

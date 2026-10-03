@@ -25,7 +25,7 @@ poetry run python scripts/refresh_news.py
 poetry run python scripts/run_ingestion.py --adapter rss
 ```
 
-`refresh_news.py` pulls the public RSS catalog (BBC, Guardian, NPR, Al Jazeera, AA) then seeds demo users A/B. A second `run_ingestion.py --adapter rss` should report `"inserted": 0` and `"duplicates" > 0`.
+`refresh_news.py` pulls the public RSS catalog (BBC, Guardian, NPR, Al Jazeera, AA) (pass `--with-demo` to also seed the local demo users A/B and example stories; production never does). A second `run_ingestion.py --adapter rss` should report `"inserted": 0` and `"duplicates" > 0`.
 
 ## Modules
 

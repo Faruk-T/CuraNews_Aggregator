@@ -23,6 +23,9 @@ class ArticleItem(BaseModel):
     summary: str | None = None
     body: str | None = None
     url: str
+    page_path: str | None = Field(
+        default=None, description="Site-relative permalink of the CuraNews article page"
+    )
     source_name: str
     source_logo: str | None = None
     image_url: str | None = None
@@ -61,7 +64,7 @@ class FeedResponse(BaseModel):
 
 
 class ReadCreate(BaseModel):
-    user_id: str = Field(min_length=1, description="external_key, e.g. demo-user-a")
+    user_id: str | None = Field(default=None, description="Anonymous reader key")
     article_id: UUID
     dwell_ms: int | None = Field(default=None, ge=0)
 
@@ -88,17 +91,15 @@ class TopicsResponse(BaseModel):
 # AUTH & PROFILE SCHEMAS (DAY 22)
 # ========================================================
 class UserRegister(BaseModel):
-    email: str
-    password: str = Field(min_length=6)
-    full_name: str
-    avatar_url: str | None = None
-    role: str = "reader"
+    email: str = Field(max_length=254)
+    password: str = Field(min_length=8, max_length=128)
+    full_name: str = Field(min_length=2, max_length=120)
     preferences: dict[str, Any] = Field(default_factory=dict)
 
 
 class UserLogin(BaseModel):
-    email: str
-    password: str
+    email: str = Field(max_length=254)
+    password: str = Field(max_length=128)
 
 
 class UserProfile(BaseModel):
@@ -143,9 +144,7 @@ class BookmarkListResponse(BaseModel):
 # COMMENT SCHEMAS (DAY 22)
 # ========================================================
 class CommentCreate(BaseModel):
-    content: str = Field(min_length=1, max_length=1000)
-    author_name: str | None = None
-    author_avatar: str | None = None
+    content: str = Field(min_length=2, max_length=1000)
 
 
 class CommentItem(BaseModel):
@@ -174,12 +173,9 @@ class CommentLikeResponse(BaseModel):
 # ========================================================
 class EditorArticleCreate(BaseModel):
     title: str = Field(min_length=5, max_length=300)
-    category: str = "gundem"
+    category: str = Field(default="gundem", max_length=40)
     summary: str = Field(min_length=10, max_length=600)
-    body: str = Field(min_length=20)
-    image_url: str | None = None
-    video_url: str | None = None
-    author_name: str = "CuraNews Editörü"
-    author_title: str = "Kıdemli Editör"
-    author_avatar: str | None = None
-
+    body: str = Field(min_length=20, max_length=50_000)
+    image_url: str | None = Field(default=None, max_length=2048)
+    video_url: str | None = Field(default=None, max_length=2048)
+    author_title: str = Field(default="Editör", max_length=80)

@@ -12,12 +12,15 @@ from lxml import etree
 from curanews.domain.models import RawArticleDraft
 from curanews.ingestion.cleaning import strip_html_tags
 from curanews.nlp.categorizer import (
+    CATEGORIZER_VERSION,
     calculate_read_time,
     categorize_text,
     detect_breaking_news,
+    normalize_category_name,
 )
 from curanews.scrapers.adapters._paths import fixture_path
 from curanews.scrapers.adapters.rss_catalog import RssFeed
+from curanews.timeutil import correct_future_timestamp
 
 
 def parse_feed_xml(xml: str | bytes, *, feed: RssFeed) -> list[RawArticleDraft]:
@@ -70,10 +73,12 @@ def _draft_from_item(node: etree._Element, *, feed: RssFeed) -> RawArticleDraft 
     if not body:
         return None
 
-    published = _parse_datetime(
-        _first_text(node, "pubdate", "published", "updated", "date")
+    published = correct_future_timestamp(
+        _parse_datetime(_first_text(node, "pubdate", "published", "updated", "date"))
     )
-    category = _first_text(node, "category") or feed.category
+    item_category = _first_text(node, "category")
+    # Free-form item tags ("News", "Israel-Palestine conflict") must not erase the feed's desk.
+    category = (item_category if normalize_category_name(item_category) else None) or feed.category
     author = _first_text(node, "creator", "author", "name")
     if author and "<" in author:
         author = strip_html_tags(author)
@@ -83,6 +88,7 @@ def _draft_from_item(node: etree._Element, *, feed: RssFeed) -> RawArticleDraft 
         "feed_key": feed.key,
         "publisher": feed.publisher,
         "feed_url": feed.url,
+        "feed_category": feed.category,
     }
 
     image_url = _extract_image_url(node, content_html, summary)
@@ -98,13 +104,13 @@ def _draft_from_item(node: etree._Element, *, feed: RssFeed) -> RawArticleDraft 
     )
     metadata["category_slug"] = cat_slug
     metadata["category_confidence"] = cat_conf
+    metadata["categorizer_version"] = CATEGORIZER_VERSION
     metadata["is_breaking"] = detect_breaking_news(clean_title, summary_clean)
     metadata["read_time_minutes"] = calculate_read_time(body, summary_clean)
 
-    # Use inferred category if feed category is missing or generic
-    final_category = category
-    if not final_category or final_category.lower() in {"world", "general", "turkey"}:
-        final_category = cat_slug
+    # The classifier already weighs the feed category as a prior, so a world-news
+    # story syndicated through a sports feed is not filed under Spor.
+    final_category = cat_slug
 
     return RawArticleDraft(
         title=clean_title,
@@ -128,8 +134,13 @@ def _extract_image_url(node: etree._Element, *html_snippets: str | None) -> str 
             url = (child.get("url") or "").strip()
             mime = (child.get("type") or "").lower()
             if url and (url.startswith("http://") or url.startswith("https://")):
-                if mime and not mime.startswith("image/") and not any(
-                    url.lower().endswith(ext) for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif")
+                if (
+                    mime
+                    and not mime.startswith("image/")
+                    and not any(
+                        url.lower().endswith(ext)
+                        for ext in (".jpg", ".jpeg", ".png", ".webp", ".gif")
+                    )
                 ):
                     continue
                 return url
@@ -139,7 +150,9 @@ def _extract_image_url(node: etree._Element, *html_snippets: str | None) -> str 
                 u = url_elem.text.strip()
                 if u.startswith("http://") or u.startswith("https://"):
                     return u
-            if child.text and (child.text.startswith("http://") or child.text.startswith("https://")):
+            if child.text and (
+                child.text.startswith("http://") or child.text.startswith("https://")
+            ):
                 return child.text.strip()
 
     img_pat = re.compile(r'<img[^>]+src=["\'](https?://[^"\'>\s]+)["\']', re.IGNORECASE)

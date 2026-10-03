@@ -81,10 +81,37 @@ class Settings(BaseSettings):
         default="change-me-in-local-only",
         description="Salt for PII pseudonymization (override in real .env).",
     )
+    jwt_secret: str = Field(
+        default="",
+        description="HMAC key for session tokens. Required in prod (min 32 chars).",
+    )
+
+    public_base_url: str = Field(
+        default="",
+        description="Public site root incl. path prefix, e.g. https://truncgil.com/curanews",
+    )
+    editor_email: str = Field(default="faruk@curanews.com")
+    editor_password: str = Field(
+        default="",
+        description="Editor login password; empty disables editor login.",
+    )
+    adsense_pub_id: str = Field(
+        default="",
+        description="Google AdSense publisher id (pub-…); empty disables ads.txt and ad slots.",
+    )
+    ga_measurement_id: str = Field(
+        default="",
+        description="Google Analytics 4 id (G-…); empty disables analytics.",
+    )
+    google_site_verification: str = Field(default="")
 
     @property
     def is_dev(self) -> bool:
         return self.app_env == "dev"
+
+    @property
+    def is_prod(self) -> bool:
+        return self.app_env == "prod"
 
 
 @lru_cache(maxsize=1)

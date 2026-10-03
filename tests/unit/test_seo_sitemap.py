@@ -15,6 +15,7 @@ from sqlalchemy.pool import StaticPool
 
 from curanews.api.app import create_app
 from curanews.api.deps import get_db
+from curanews.config import get_settings
 from curanews.db.base import Base
 from curanews.db.models import Article, Source
 
@@ -82,37 +83,41 @@ def test_robots_txt(client: TestClient) -> None:
     assert res.status_code == 200
     assert res.headers["content-type"].startswith("text/plain")
     text = res.text
-    assert "User-agent: Googlebot" in text
+    assert "User-agent: *" in text
     assert "Allow: /" in text
-    assert "Sitemap:" in text
-    assert "/sitemap.xml" in text
-    assert "Allow: /ads.txt" in text
+    assert "Disallow: /auth/" in text
+    assert "Disallow: /editor/" in text
+    assert "Sitemap: http://testserver/sitemap.xml" in text
 
 
-def test_ads_txt(client: TestClient) -> None:
+def test_ads_txt_is_absent_without_publisher_id(client: TestClient) -> None:
+    assert client.get("/ads.txt").status_code == 404
+
+
+def test_ads_txt_with_publisher_id(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(get_settings(), "adsense_pub_id", "ca-pub-1234567890123456")
     res = client.get("/ads.txt")
     assert res.status_code == 200
-    assert res.headers["content-type"].startswith("text/plain")
-    text = res.text
-    assert "google.com" in text
-    assert "DIRECT" in text
+    assert res.text.strip() == "google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0"
 
 
-def test_sitemap_xml(client: TestClient, session: Session) -> None:
+def test_sitemap_lists_only_own_urls(client: TestClient, session: Session) -> None:
     _seed_sample_articles(session)
     res = client.get("/sitemap.xml")
     assert res.status_code == 200
     assert "application/xml" in res.headers["content-type"]
 
-    # Verify XML is well-formed
     root = ET.fromstring(res.text)
     assert root.tag.endswith("urlset")
 
-    # Check for loc tags
-    locs = [elem.text for elem in root.iter() if elem.tag.endswith("loc")]
-    assert len(locs) >= 8  # home + 7 categories + 3 seeded articles
-    assert any("ui/?category=gundem" in loc for loc in locs if loc)
-    assert any("ui/?category=ekonomi" in loc for loc in locs if loc)
+    locs = [elem.text or "" for elem in root.iter() if elem.tag.endswith("loc")]
+    assert len(locs) == 1 + 7 + 3
+    assert all(loc.startswith("http://testserver/") for loc in locs)
+    assert "http://testserver/ui/" in locs
+    assert "http://testserver/kategori/ekonomi" in locs
+    article_locs = [loc for loc in locs if "/haber/" in loc]
+    assert len(article_locs) == 3
+    assert all("test-haber-basligi-" in loc for loc in article_locs)
 
 
 def test_rss_xml(client: TestClient, session: Session) -> None:
@@ -131,3 +136,6 @@ def test_rss_xml(client: TestClient, session: Session) -> None:
     assert len(items) == 3
     assert items[0].find("title") is not None
     assert items[0].find("enclosure") is not None
+    link = items[0].findtext("link") or ""
+    assert link.startswith("http://testserver/haber/")
+    assert "hurriyet.com.tr" not in link

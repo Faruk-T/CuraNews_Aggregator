@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import re
 from typing import Any, MutableMapping
 
@@ -16,9 +17,9 @@ def collapse_whitespace(value: str) -> str:
 
 
 def strip_html_tags(value: str) -> str:
-    """Remove HTML markup and collapse whitespace (Issue #10)."""
+    """Remove HTML markup, decode entities (``&#039;``) and collapse whitespace (Issue #10)."""
     without_tags = _HTML_TAG_RE.sub(" ", value)
-    return collapse_whitespace(without_tags)
+    return collapse_whitespace(html.unescape(without_tags))
 
 
 def clean_news_payload(payload: MutableMapping[str, Any]) -> MutableMapping[str, Any]:

@@ -1,15 +1,17 @@
-"""Refresh CuraNews with public RSS headlines, then seed demo users A/B.
+"""Refresh CuraNews with public RSS headlines.
 
 Usage::
 
     docker compose up -d postgres redis
     poetry run alembic upgrade head
-    poetry run python scripts/refresh_news.py
+    poetry run python scripts/refresh_news.py              # RSS only (production)
+    poetry run python scripts/refresh_news.py --with-demo  # + demo users A/B (local dev)
     poetry run python scripts/run_api.py
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import subprocess
 import sys
@@ -24,7 +26,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main(argv: list[str] | None = None) -> int:
-    del argv
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--with-demo",
+        action="store_true",
+        help="also seed demo users and English placeholder stories (local dev only)",
+    )
+    args = parser.parse_args(argv)
     setup_logging()
     factory = get_session_factory()
     session = factory()
@@ -59,6 +67,8 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         session.close()
 
+    if not args.with_demo:
+        return 0
     demo = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "seed_demo_users.py")],
         cwd=ROOT,

@@ -46,10 +46,14 @@ def main() -> int:
     print("Running alembic upgrade head…", flush=True)
     subprocess.run(["alembic", "upgrade", "head"], cwd=ROOT, check=True)
 
+    print("Syncing staff accounts and article categories…", flush=True)
+    for script in ("sync_staff_accounts.py", "recategorize_articles.py"):
+        subprocess.run([sys.executable, str(ROOT / "scripts" / script)], cwd=ROOT, check=False)
+
     if os.environ.get("CURANEWS_BOOTSTRAP", "0") == "1":
-        print("Bootstrapping sources + RSS + demo users…", flush=True)
-        subprocess.run([sys.executable, str(ROOT / "scripts" / "seed_sources.py")], cwd=ROOT, check=False)
-        subprocess.run([sys.executable, str(ROOT / "scripts" / "refresh_news.py")], cwd=ROOT, check=False)
+        print("Bootstrapping sources + RSS…", flush=True)
+        for script in ("seed_sources.py", "refresh_news.py"):
+            subprocess.run([sys.executable, str(ROOT / "scripts" / script)], cwd=ROOT, check=False)
 
     print("Starting uvicorn on 0.0.0.0:8000…", flush=True)
     os.execvp(

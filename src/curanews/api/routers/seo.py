@@ -1,187 +1,149 @@
-"""SEO, Sitemap, Robots.txt, RSS Syndication and IAB ads.txt router (Day 23)."""
+"""Sitemap, robots.txt, RSS syndication and ads.txt (Day 23)."""
 
 from __future__ import annotations
 
-import os
+import re
 from datetime import UTC, datetime
+from typing import Any
 from xml.sax.saxutils import escape
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from curanews.api.deps import get_db
+from curanews.api.urls import article_path, public_base_url
 from curanews.config import get_settings
 from curanews.db.models import Article
+from curanews.nlp.categorizer import CANONICAL_CATEGORIES
+from curanews.timeutil import correct_future_timestamp
+from curanews.web.render import SITE_DESCRIPTION, SITE_NAME, clip
 
 router = APIRouter(tags=["seo"])
 
+SITEMAP_ARTICLE_LIMIT = 5000
+RSS_ITEM_LIMIT = 50
+_ADSENSE_ID = re.compile(r"pub-\d{10,20}")
 
-def _get_base_url() -> str:
-    domain = os.environ.get("DOMAIN_NAME", "curanews.com").strip()
-    is_local = domain in ("localhost", "127.0.0.1") or domain.startswith("127.0.0.1:")
-    proto = "http" if is_local else "https"
-    return f"{proto}://{domain}"
+
+def _stamp(article: Any) -> datetime:
+    value = correct_future_timestamp(article.published_at) or article.scraped_at
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 @router.get("/robots.txt", response_class=Response)
-def get_robots_txt() -> Response:
-    """Return standard robots.txt for search engine crawlers."""
-    base_url = _get_base_url()
-    content = f"""# CuraNews Aggregator Robots.txt (Day 23)
-User-agent: *
+def get_robots_txt(request: Request) -> Response:
+    base = public_base_url(request)
+    content = f"""User-agent: *
 Allow: /
-Allow: /ui/
-Allow: /sitemap.xml
-Allow: /rss.xml
-Allow: /ads.txt
-Disallow: /api/auth/
-Disallow: /api/reads/
+Disallow: /auth/
 Disallow: /editor/
+Disallow: /reads
+Disallow: /bookmarks
+Disallow: /feed
 
-# Search Engine Crawlers
-User-agent: Googlebot
-Allow: /
-
-User-agent: Googlebot-News
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: YandexBot
-Allow: /
-
-Sitemap: {base_url}/sitemap.xml
+Sitemap: {base}/sitemap.xml
 """
     return Response(content=content, media_type="text/plain; charset=utf-8")
 
 
 @router.get("/sitemap.xml", response_class=Response)
-def get_sitemap_xml(session: Session = Depends(get_db)) -> Response:
-    """Generate dynamic XML Sitemap for Google Search Console and web indexers."""
-    base_url = _get_base_url()
-    now_iso = datetime.now(UTC).strftime("%Y-%m-%d")
+def get_sitemap_xml(request: Request, session: Session = Depends(get_db)) -> Response:
+    """Only URLs served by this site; publisher URLs belong in their own sitemaps."""
+    base = public_base_url(request)
+    now = datetime.now(UTC).isoformat(timespec="seconds")
 
-    categories = [
-        ("gundem", "0.8"),
-        ("ekonomi", "0.8"),
-        ("teknoloji", "0.8"),
-        ("spor", "0.7"),
-        ("saglik", "0.7"),
-        ("dunya", "0.7"),
-        ("politika", "0.7"),
-    ]
-
-    urls = [
-        f"""  <url>
-    <loc>{base_url}/</loc>
-    <lastmod>{now_iso}</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>1.0</priority>
-  </url>"""
-    ]
-
-    for cat_slug, priority in categories:
-        urls.append(
-            f"""  <url>
-    <loc>{base_url}/ui/?category={cat_slug}</loc>
-    <lastmod>{now_iso}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>{priority}</priority>
-  </url>"""
+    entries = [(f"{base}/ui/", now, "hourly", "1.0")]
+    entries += [(f"{base}/kategori/{slug}", now, "hourly", "0.8") for slug in CANONICAL_CATEGORIES]
+    articles = session.execute(
+        select(Article.id, Article.title, Article.published_at, Article.scraped_at)
+        .order_by(desc(Article.published_at).nulls_last())
+        .limit(SITEMAP_ARTICLE_LIMIT)
+    ).all()
+    entries += [
+        (
+            f"{base}/{article_path(art.id, art.title)}",
+            _stamp(art).isoformat(timespec="seconds"),
+            "daily",
+            "0.6",
         )
+        for art in articles
+    ]
 
-    # Fetch latest 200 articles
-    articles = list(
-        session.scalars(
-            select(Article).order_by(desc(Article.published_at)).limit(200)
-        ).all()
+    body = "\n".join(
+        f"  <url><loc>{escape(loc)}</loc><lastmod>{mod}</lastmod>"
+        f"<changefreq>{freq}</changefreq><priority>{prio}</priority></url>"
+        for loc, mod, freq, prio in entries
     )
-
-    for art in articles:
-        mod_date = (art.published_at or art.scraped_at or datetime.now(UTC)).strftime("%Y-%m-%d")
-        safe_loc = escape(art.url)
-        urls.append(
-            f"""  <url>
-    <loc>{safe_loc}</loc>
-    <lastmod>{mod_date}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>"""
-        )
-
-    xml_body = "\n".join(urls)
-    sitemap_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-{xml_body}
-</urlset>"""
-
-    return Response(content=sitemap_content, media_type="application/xml; charset=utf-8")
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{body}\n</urlset>"
+    )
+    return Response(
+        content=xml,
+        media_type="application/xml; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=600"},
+    )
 
 
 @router.get("/rss.xml", response_class=Response)
-def get_rss_xml(session: Session = Depends(get_db)) -> Response:
-    """Generate valid RSS 2.0 feed for news aggregators and Google News."""
-    base_url = _get_base_url()
-    settings = get_settings()
-
-    articles = list(
-        session.scalars(
-            select(Article).order_by(desc(Article.published_at)).limit(50)
-        ).all()
-    )
+def get_rss_xml(request: Request, session: Session = Depends(get_db)) -> Response:
+    base = public_base_url(request)
+    articles = session.scalars(
+        select(Article).order_by(desc(Article.published_at).nulls_last()).limit(RSS_ITEM_LIMIT)
+    ).all()
 
     items = []
     for art in articles:
-        pub_date = (art.published_at or art.scraped_at or datetime.now(UTC)).strftime(
-            "%a, %d %b %Y %H:%M:%S +0000"
-        )
-        safe_title = escape(art.title)
-        safe_desc = escape(art.summary or art.title)
-        safe_link = escape(art.url)
-        safe_cat = escape(art.category or "gundem")
-
+        link = escape(f"{base}/{article_path(art.id, art.title)}")
         meta = art.raw_metadata or {}
         enclosure = ""
         img_url = meta.get("image_url")
-        if img_url:
-            enclosure = f'<enclosure url="{escape(img_url)}" type="image/jpeg" />'
-
+        if isinstance(img_url, str) and img_url.startswith(("http://", "https://")):
+            enclosure = (
+                f'\n      <enclosure url="{escape(img_url)}" type="image/jpeg" length="0" />'
+            )
+        source = escape(str(meta.get("publisher") or SITE_NAME))
         items.append(
             f"""    <item>
-      <title>{safe_title}</title>
-      <link>{safe_link}</link>
-      <description>{safe_desc}</description>
-      <category>{safe_cat}</category>
-      <pubDate>{pub_date}</pubDate>
-      <guid isPermaLink="false">{art.id}</guid>
-      {enclosure}
+      <title>{escape(art.title)}</title>
+      <link>{link}</link>
+      <guid isPermaLink="true">{link}</guid>
+      <description>{escape(clip(art.summary or art.title, 400))}</description>
+      <category>{escape(art.category or "gundem")}</category>
+      <source url="{escape(base)}/rss.xml">{source}</source>
+      <pubDate>{_stamp(art).strftime("%a, %d %b %Y %H:%M:%S +0000")}</pubDate>{enclosure}
     </item>"""
         )
 
-    items_str = "\n".join(items)
-    rss_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+    rss = f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>{escape(settings.app_name)}</title>
-    <link>{base_url}/</link>
-    <description>Akıllı Haber Kürasyonu ve Editör Masası</description>
+    <title>{SITE_NAME}</title>
+    <link>{escape(base)}/ui/</link>
+    <description>{escape(SITE_DESCRIPTION)}</description>
     <language>tr</language>
-    <atom:link href="{base_url}/rss.xml" rel="self" type="application/rss+xml" />
-{items_str}
+    <atom:link href="{escape(base)}/rss.xml" rel="self" type="application/rss+xml" />
+{chr(10).join(items)}
   </channel>
 </rss>"""
-
-    return Response(content=rss_content, media_type="application/rss+xml; charset=utf-8")
+    return Response(
+        content=rss,
+        media_type="application/rss+xml; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
 
 
 @router.get("/ads.txt", response_class=Response)
 def get_ads_txt() -> Response:
-    """Return IAB compliant ads.txt for Google AdSense & programmatic ad verification."""
-    adsense_id = os.environ.get("ADSENSE_PUB_ID", "pub-8573920194827104").strip()
-    content = f"""# CuraNews Aggregator IAB ads.txt (Day 23)
-# https://iabtechlab.com/ads-txt/
-google.com, {adsense_id}, DIRECT, f08c47fec0942fa0
-"""
+    """IAB ads.txt; served only once a real AdSense publisher id is configured."""
+    pub_id = get_settings().adsense_pub_id.strip().removeprefix("ca-")
+    if not _ADSENSE_ID.fullmatch(pub_id):
+        return Response(
+            content="# ads.txt: no authorized sellers configured\n",
+            status_code=404,
+            media_type="text/plain; charset=utf-8",
+        )
+    content = f"google.com, {pub_id}, DIRECT, f08c47fec0942fa0\n"
     return Response(content=content, media_type="text/plain; charset=utf-8")

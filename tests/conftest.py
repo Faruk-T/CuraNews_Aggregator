@@ -15,6 +15,15 @@ for path in (ROOT, SRC):
         sys.path.insert(0, str(path))
 
 
+@pytest.fixture(autouse=True)
+def _reset_request_limits() -> None:
+    from curanews.api import ratelimit
+    from curanews.api.routers import comments
+
+    ratelimit.reset_all()
+    comments._local_likes.clear()
+
+
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "unit: fast isolated unit tests")
     config.addinivalue_line(
