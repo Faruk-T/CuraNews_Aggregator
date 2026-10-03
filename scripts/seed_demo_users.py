@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
 from uuid import uuid4
 
@@ -57,7 +57,7 @@ def _ensure_article(
             content_hash=_content_hash(body),
             category=category,
             language="en",
-            published_at=datetime(2026, 8, 14, 12, 0, tzinfo=timezone.utc),
+            published_at=datetime(2026, 8, 14, 12, 0, tzinfo=UTC),
         )
         session.add(article)
         session.flush()
@@ -80,13 +80,12 @@ def main() -> int:
     factory = get_session_factory()
     session = factory()
     try:
-        from curanews.api.routers.auth import ensure_demo_accounts
+        from curanews.api.accounts import sync_staff_accounts
 
-        ensure_demo_accounts(session)
+        sync_staff_accounts(session)
         users = UserRepository(session)
         user_a = users.ensure_user("demo-user-a")
         user_b = users.ensure_user("demo-user-b")
-
 
         source = session.scalars(select(Source).where(Source.name == "example_news")).one_or_none()
         if source is None:

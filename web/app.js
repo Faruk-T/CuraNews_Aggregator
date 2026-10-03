@@ -1,290 +1,309 @@
 /**
- * CuraNews Web App (Day 22 — Community & Editorial Edition)
- * Features:
- * - User Authentication, JWT Session & Profiles
- * - Bookmarks / Favorites Management
- * - In-Site Reader Article Comments & Likes
- * - Onedio-style Editor CMS Panel with Author Box & Video Embed
- * - Bundle.app Category Tabs & Breaking News Ticker
- * - Civil Servant & Senior Reader Mode (Font Scaling + Sepya / High Contrast Themes)
+ * CuraNews web client.
+ * Server renders the first headlines for crawlers; this module hydrates the
+ * interactive feed, reader modal, account, comments and editor desk.
  */
 
-const API_BASE = window.CURANEWS_API_BASE || "";
+const BASE = resolveBasePath();
+const API_BASE = window.CURANEWS_API_BASE ?? BASE;
+const READER_KEY_STORAGE = "curanews_reader_key";
+const TOKEN_STORAGE = "curanews_token";
+const FEED_LIMIT = 48;
+const PAGE_SIZE = 20;
+const INITIAL_CHUNK = 12;
+const NEXT_CHUNK = 9;
+
+const CATEGORY_IMAGES = {
+  ekonomi: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop",
+  teknoloji: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop",
+  spor: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop",
+  gundem: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop",
+  saglik: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop",
+  dunya: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop",
+  politika: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&auto=format&fit=crop",
+};
+const CATEGORY_NAMES = {
+  gundem: "Gündem",
+  ekonomi: "Ekonomi",
+  teknoloji: "Teknoloji",
+  spor: "Spor",
+  saglik: "Sağlık",
+  dunya: "Dünya",
+  politika: "Politika",
+};
+
+const $ = (id) => document.getElementById(id);
 
 const els = {
-  // Navigation & Preferences
-  topAdWrap: document.getElementById("topAdWrap"),
-  topAdClose: document.getElementById("topAdClose"),
-  categoryScroll: document.getElementById("categoryScroll"),
-  liveClock: document.getElementById("liveClock"),
+  openEditorBtn: $("openEditorBtn"),
+  prefsToggle: $("prefsToggle"),
+  prefsPanel: $("prefsPanel"),
   fontBtns: document.querySelectorAll(".font-btn"),
   themeBtns: document.querySelectorAll(".theme-btn"),
+  liveClock: $("liveClock"),
+  userProfileBtn: $("userProfileBtn"),
+  topbarAvatar: $("topbarAvatar"),
+  topbarUserName: $("topbarUserName"),
+  topbarUserRole: $("topbarUserRole"),
 
-  // Topbar Auth & Editor Buttons
-  openEditorBtn: document.getElementById("openEditorBtn"),
-  userProfileBtn: document.getElementById("userProfileBtn"),
-  topbarAvatar: document.getElementById("topbarAvatar"),
-  topbarUserName: document.getElementById("topbarUserName"),
-  topbarUserRole: document.getElementById("topbarUserRole"),
+  breakingBanner: $("breakingBanner"),
+  breakingLabel: $("breakingLabel"),
+  breakingText: $("breakingText"),
+  categoryScroll: $("categoryScroll"),
 
-  // Breaking Ticker
-  breakingBanner: document.getElementById("breakingBanner"),
-  breakingText: document.getElementById("breakingText"),
-  breakingOpenBtn: document.getElementById("breakingOpenBtn"),
+  sectionKicker: $("sectionKicker"),
+  feedHeading: $("feedHeading"),
+  feedCount: $("feedCount"),
+  searchInput: $("searchInput"),
+  refreshBtn: $("refreshBtn"),
+  viewAll: $("viewAll"),
+  viewBookmarks: $("viewBookmarks"),
+  viewRead: $("viewRead"),
+  bookmarkCount: $("bookmarkCount"),
+  featuredSlot: $("featuredSlot"),
+  feedList: $("feedList"),
+  sentinel: $("infiniteScrollSentinel"),
+  spinner: $("infiniteScrollSpinner"),
+  scrollEnd: $("infiniteScrollEnd"),
+  skeleton: $("skeleton"),
+  emptyState: $("emptyState"),
+  toast: $("toast"),
 
-  // Desk Controls
-  userSelect: document.getElementById("userSelect"),
-  searchInput: document.getElementById("searchInput"),
-  refreshBtn: document.getElementById("refreshBtn"),
-  topicCloud: document.getElementById("topicCloud"),
-  topicSelect: document.getElementById("topicSelect"),
+  articleModal: $("articleModal"),
+  modalCloseBtn: $("modalCloseBtn"),
+  modalSourceLogo: $("modalSourceLogo"),
+  modalSourceName: $("modalSourceName"),
+  modalPublished: $("modalPublished"),
+  modalCategory: $("modalCategory"),
+  modalReadTime: $("modalReadTime"),
+  modalBookmarkBtn: $("modalBookmarkBtn"),
+  modalHeroWrap: $("modalHeroWrap"),
+  modalHeroImg: $("modalHeroImg"),
+  modalVideoWrap: $("modalVideoWrap"),
+  modalVideoIframe: $("modalVideoIframe"),
+  modalAuthorBox: $("modalAuthorBox"),
+  modalAuthorAvatar: $("modalAuthorAvatar"),
+  modalAuthorName: $("modalAuthorName"),
+  modalAuthorTitle: $("modalAuthorTitle"),
+  modalTitle: $("modalTitle"),
+  modalSummary: $("modalSummary"),
+  modalContent: $("modalContent"),
+  modalAttribution: $("modalAttribution"),
+  modalAttributionPublisher: $("modalAttributionPublisher"),
+  modalExternalLink: $("modalExternalLink"),
+  modalMarkReadBtn: $("modalMarkReadBtn"),
+  modalShareBtn: $("modalShareBtn"),
+  modalPermalink: $("modalPermalink"),
 
-  // Feed Views
-  feedHeading: document.getElementById("feedHeading"),
-  sectionKicker: document.getElementById("sectionKicker"),
-  feedCount: document.getElementById("feedCount"),
-  viewAll: document.getElementById("viewAll"),
-  viewBookmarks: document.getElementById("viewBookmarks"),
-  bookmarkCount: document.getElementById("bookmarkCount"),
-  viewRead: document.getElementById("viewRead"),
-  featuredSlot: document.getElementById("featuredSlot"),
-  feedList: document.getElementById("feedList"),
-  infiniteScrollSentinel: document.getElementById("infiniteScrollSentinel"),
-  infiniteScrollSpinner: document.getElementById("infiniteScrollSpinner"),
-  infiniteScrollEnd: document.getElementById("infiniteScrollEnd"),
-  skeleton: document.getElementById("skeleton"),
-  emptyState: document.getElementById("emptyState"),
-  status: document.getElementById("status"),
-  error: document.getElementById("error"),
-  cacheBadge: document.getElementById("cacheBadge"),
+  commentsCount: $("commentsCount"),
+  commentForm: $("commentForm"),
+  commentText: $("commentText"),
+  commentLoginHint: $("commentLoginHint"),
+  commentLoginBtn: $("commentLoginBtn"),
+  commentsList: $("commentsList"),
 
-  // In-Site Reader Modal
-  articleModal: document.getElementById("articleModal"),
-  modalCloseBtn: document.getElementById("modalCloseBtn"),
-  modalDismissBtn: document.getElementById("modalDismissBtn"),
-  modalSourceLogo: document.getElementById("modalSourceLogo"),
-  modalSourceName: document.getElementById("modalSourceName"),
-  modalPublished: document.getElementById("modalPublished"),
-  modalCategory: document.getElementById("modalCategory"),
-  modalReadTime: document.getElementById("modalReadTime"),
-  modalBookmarkBtn: document.getElementById("modalBookmarkBtn"),
-  modalHeroWrap: document.getElementById("modalHeroWrap"),
-  modalHeroImg: document.getElementById("modalHeroImg"),
-  modalVideoWrap: document.getElementById("modalVideoWrap"),
-  modalVideoIframe: document.getElementById("modalVideoIframe"),
-  modalAuthorBox: document.getElementById("modalAuthorBox"),
-  modalAuthorAvatar: document.getElementById("modalAuthorAvatar"),
-  modalAuthorName: document.getElementById("modalAuthorName"),
-  modalAuthorTitle: document.getElementById("modalAuthorTitle"),
-  modalTitle: document.getElementById("modalTitle"),
-  modalSummary: document.getElementById("modalSummary"),
-  modalContent: document.getElementById("modalContent"),
-  modalAttributionPublisher: document.getElementById("modalAttributionPublisher"),
-  modalExternalLink: document.getElementById("modalExternalLink"),
-  modalMarkReadBtn: document.getElementById("modalMarkReadBtn"),
-  modalShareBtn: document.getElementById("modalShareBtn"),
+  editorModal: $("editorModal"),
+  editorCloseBtn: $("editorCloseBtn"),
+  editorCancelBtn: $("editorCancelBtn"),
+  editorForm: $("editorForm"),
 
-  // Comments
-  commentsCount: document.getElementById("commentsCount"),
-  commentForm: document.getElementById("commentForm"),
-  commentUserAvatar: document.getElementById("commentUserAvatar"),
-  commentText: document.getElementById("commentText"),
-  commentsList: document.getElementById("commentsList"),
+  profileModal: $("profileModal"),
+  profileCloseBtn: $("profileCloseBtn"),
+  authView: $("authView"),
+  profileView: $("profileView"),
+  tabLogin: $("tabLogin"),
+  tabRegister: $("tabRegister"),
+  authLoginForm: $("authLoginForm"),
+  authRegisterForm: $("authRegisterForm"),
+  profileAvatar: $("profileAvatar"),
+  profileFullName: $("profileFullName"),
+  profileEmail: $("profileEmail"),
+  profileRoleBadge: $("profileRoleBadge"),
+  statReadCount: $("statReadCount"),
+  statBookmarkCount: $("statBookmarkCount"),
+  interestsContainer: $("interestsContainer"),
+  saveInterestsBtn: $("saveInterestsBtn"),
+  profileLogoutBtn: $("profileLogoutBtn"),
 
-  // Editor Modal
-  editorModal: document.getElementById("editorModal"),
-  editorCloseBtn: document.getElementById("editorCloseBtn"),
-  editorCancelBtn: document.getElementById("editorCancelBtn"),
-  editorForm: document.getElementById("editorForm"),
-  editorTitle: document.getElementById("editorTitle"),
-  editorCategory: document.getElementById("editorCategory"),
-  editorAuthorTitle: document.getElementById("editorAuthorTitle"),
-  editorSummary: document.getElementById("editorSummary"),
-  editorBody: document.getElementById("editorBody"),
-  editorImgUrl: document.getElementById("editorImgUrl"),
-  editorVideoUrl: document.getElementById("editorVideoUrl"),
-
-  // Profile Modal
-  profileModal: document.getElementById("profileModal"),
-  profileCloseBtn: document.getElementById("profileCloseBtn"),
-  profileDismissBtn: document.getElementById("profileDismissBtn"),
-  tabProfile: document.getElementById("tabProfile"),
-  tabLogin: document.getElementById("tabLogin"),
-  profileView: document.getElementById("profileView"),
-  loginView: document.getElementById("loginView"),
-  profileAvatarImg: document.getElementById("profileAvatarImg"),
-  profileFullName: document.getElementById("profileFullName"),
-  profileEmail: document.getElementById("profileEmail"),
-  profileRoleBadge: document.getElementById("profileRoleBadge"),
-  statReadCount: document.getElementById("statReadCount"),
-  statBookmarkCount: document.getElementById("statBookmarkCount"),
-  saveInterestsBtn: document.getElementById("saveInterestsBtn"),
-  btnSwitchEditor: document.getElementById("btnSwitchEditor"),
-  btnSwitchReader: document.getElementById("btnSwitchReader"),
-  authLoginForm: document.getElementById("authLoginForm"),
-  loginEmail: document.getElementById("loginEmail"),
-  loginPassword: document.getElementById("loginPassword"),
-  profileLogoutBtn: document.getElementById("profileLogoutBtn"),
-
-  // Cookie & Ad Policies (Day 23)
-  cookieConsentBanner: document.getElementById("cookieConsentBanner"),
-  acceptCookiesBtn: document.getElementById("acceptCookiesBtn"),
-  rejectCookiesBtn: document.getElementById("rejectCookiesBtn"),
-  openPolicyBtn: document.getElementById("openPolicyBtn"),
-  policyModal: document.getElementById("policyModal"),
-  policyCloseBtn: document.getElementById("policyCloseBtn"),
-  policyDismissBtn: document.getElementById("policyDismissBtn"),
-  footerPolicyLink: document.getElementById("footerPolicyLink"),
+  policyModal: $("policyModal"),
+  policyCloseBtn: $("policyCloseBtn"),
+  footerPolicyLink: $("footerPolicyLink"),
+  cookieBanner: $("cookieConsentBanner"),
+  acceptCookiesBtn: $("acceptCookiesBtn"),
+  rejectCookiesBtn: $("rejectCookiesBtn"),
+  openPolicyBtn: $("openPolicyBtn"),
 };
 
-// Application State
-let latestItems = [];
-let readItems = [];
-let bookmarkItems = [];
-let breakingItems = [];
-let currentBreakingIndex = 0;
-let breakingInterval = null;
-let activeModalArticle = null;
-
-let selectedCategory = "";
-let feedView = "all"; // 'all', 'bookmarks', 'read'
-let inboxGraceSeconds = 20 * 60;
-
-let currentUser = {
-  id: null,
-  external_key: "demo-editor",
-  full_name: "Faruk Tazeoğlu",
-  email: "faruk@curanews.com",
-  role: "editor",
-  avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-  preferences: { categories: ["gundem", "ekonomi", "teknoloji"] },
+const state = {
+  items: [],
+  readItems: [],
+  bookmarks: [],
+  view: "all",
+  category: "",
+  graceSeconds: 20 * 60,
+  filtered: [],
+  rendered: 0,
+  remoteOffset: FEED_LIMIT,
+  hasMoreRemote: true,
+  fetchingMore: false,
+  activeArticle: null,
+  token: localStorage.getItem(TOKEN_STORAGE),
+  user: null,
 };
 
-let authToken = localStorage.getItem("curanews_token") || null;
+// ---------------------------------------------------------------- utilities
 
-// ========================================================
-// TELEMETRY & ANALYTICS (GA4)
-// ========================================================
-function trackEvent(eventName, params = {}) {
+function resolveBasePath() {
+  const meta = document.querySelector('meta[name="curanews-base"]');
+  if (meta) return meta.content.replace(/\/$/, "");
+  const idx = window.location.pathname.indexOf("/ui");
+  return idx > 0 ? window.location.pathname.slice(0, idx) : "";
+}
+
+function readerKey() {
+  let key = localStorage.getItem(READER_KEY_STORAGE);
+  if (!key || !/^guest-[a-f0-9]{24}$/.test(key)) {
+    const bytes = crypto.getRandomValues(new Uint8Array(12));
+    key = `guest-${Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")}`;
+    localStorage.setItem(READER_KEY_STORAGE, key);
+  }
+  return key;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function safeUrl(value, allowed = ["http:", "https:"]) {
   try {
-    if (typeof window.gtag === "function") {
-      window.gtag("event", eventName, params);
-    }
-  } catch (err) {
-    console.debug("[GA4] trackEvent:", err);
+    const url = new URL(value, window.location.href);
+    return allowed.includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
   }
 }
 
-// ========================================================
-// AUTH & SESSION MANAGEMENT
-// ========================================================
-async function initAuth() {
-  if (authToken) {
+function safeEmbedUrl(value) {
+  const url = safeUrl(value, ["https:"]);
+  if (!url) return "";
+  const host = new URL(url).hostname;
+  return host === "www.youtube-nocookie.com" || host === "player.vimeo.com" ? url : "";
+}
+
+function pageHref(item) {
+  return item.page_path ? `${BASE}/${item.page_path}` : `${BASE}/ui/?haber=${item.id}`;
+}
+
+function categoryImage(category) {
+  return CATEGORY_IMAGES[(category || "").toLowerCase()] || CATEGORY_IMAGES.gundem;
+}
+
+function initials(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toLocaleUpperCase("tr-TR");
+}
+
+function relativeTime(iso) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const minutes = Math.max(0, Math.round((Date.now() - date.getTime()) / 60000));
+  if (minutes < 1) return "az önce";
+  if (minutes < 60) return `${minutes} dk önce`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} sa önce`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days} gün önce`;
+  return date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function fullDate(iso) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("tr-TR", { dateStyle: "long", timeStyle: "short" });
+}
+
+let toastTimer = null;
+function toast(message, kind = "info") {
+  clearTimeout(toastTimer);
+  els.toast.textContent = message;
+  els.toast.dataset.kind = kind;
+  els.toast.hidden = false;
+  toastTimer = setTimeout(() => {
+    els.toast.hidden = true;
+  }, kind === "error" ? 6000 : 3000);
+}
+
+class ApiError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
+function errorMessage(status, detail) {
+  if (typeof detail === "string" && detail) return detail;
+  if (Array.isArray(detail) && detail.length) return "Lütfen form alanlarını kontrol edin.";
+  if (status === 401) return "Bu işlem için giriş yapmanız gerekiyor.";
+  if (status === 403) return "Bu işlem için yetkiniz yok.";
+  if (status === 429) return "Çok fazla deneme yaptınız, biraz sonra tekrar deneyin.";
+  return "Bir sorun oluştu, lütfen tekrar deneyin.";
+}
+
+async function api(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (state.token) headers.Authorization = `Bearer ${state.token}`;
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  } catch {
+    throw new ApiError(0, "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.");
+  }
+  if (!response.ok) {
+    let detail = null;
     try {
-      const profile = await api("/auth/me", {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      currentUser = profile;
+      detail = (await response.json()).detail;
     } catch {
-      authToken = null;
-      localStorage.removeItem("curanews_token");
+      /* non-JSON error body */
     }
+    if (response.status === 401 && state.token) signOutLocally();
+    throw new ApiError(response.status, errorMessage(response.status, detail));
   }
-  updateAuthUI();
+  return response.json();
 }
 
-function updateAuthUI() {
-  els.topbarAvatar.src = currentUser.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
-  els.topbarUserName.textContent = currentUser.full_name || "Giriş Yap";
-  els.topbarUserRole.textContent = currentUser.role === "editor" ? "Editör" : "Okur";
-
-  // Profile modal sync
-  els.profileAvatarImg.src = currentUser.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
-  els.profileFullName.textContent = currentUser.full_name || "Misafir Kullanıcı";
-  els.profileEmail.textContent = currentUser.email || "Giriş yapılmadı";
-  els.profileRoleBadge.textContent = currentUser.role === "editor" ? "Kıdemli Editör" : "Kamu / Okur";
-
-  if (els.commentUserAvatar) {
-    els.commentUserAvatar.src = currentUser.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80";
-  }
-
-  // Update user select if matching
-  if (els.userSelect) {
-    els.userSelect.value = currentUser.external_key;
-  }
+function readerQuery() {
+  return state.user ? "" : `user_id=${encodeURIComponent(readerKey())}`;
 }
 
-async function loginUser(email, password) {
-  clearError();
-  showStatus("Oturum açılıyor…");
-  try {
-    const res = await api("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    authToken = res.access_token;
-    localStorage.setItem("curanews_token", authToken);
-    currentUser = res.user;
-    updateAuthUI();
-    showStatus(`Hoş geldiniz, ${currentUser.full_name}!`);
-    setTimeout(() => showStatus(""), 3000);
-    closeProfileModal();
-    await loadBookmarks();
-    await loadFeed();
-  } catch (err) {
-    showError(err.message || String(err));
-  }
-}
+// Images: CSP forbids inline onerror handlers, so fall back via a capturing listener.
+document.addEventListener(
+  "error",
+  (event) => {
+    const img = event.target;
+    if (!(img instanceof HTMLImageElement) || img.dataset.fallbackApplied) return;
+    img.dataset.fallbackApplied = "1";
+    if (img.dataset.fallback) {
+      img.src = img.dataset.fallback;
+    } else {
+      img.style.visibility = "hidden";
+    }
+  },
+  true,
+);
 
-function logoutUser() {
-  authToken = null;
-  localStorage.removeItem("curanews_token");
-  currentUser = {
-    id: null,
-    external_key: "demo-user-a",
-    full_name: "Misafir Okur",
-    email: null,
-    role: "reader",
-    avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-    preferences: {},
-  };
-  updateAuthUI();
-  closeProfileModal();
-  showStatus("Oturum kapatıldı.");
-  setTimeout(() => showStatus(""), 2000);
-  loadBookmarks();
-  loadFeed();
-}
-
-// ========================================================
-// THEME & ACCESSIBILITY (FONT SCALE & SEPYA/MEMUR MODU)
-// ========================================================
-function initAccessibility() {
-  const savedTheme = localStorage.getItem("curanews_theme") || "dark";
-  const savedFontSize = localStorage.getItem("curanews_font_size") || "md";
-
-  setTheme(savedTheme);
-  setFontSize(savedFontSize);
-
-  els.themeBtns.forEach((btn) => {
-    btn.addEventListener("click", () => setTheme(btn.dataset.theme));
-  });
-
-  els.fontBtns.forEach((btn) => {
-    btn.addEventListener("click", () => setFontSize(btn.dataset.size));
-  });
-
-  if (els.topAdClose) {
-    els.topAdClose.addEventListener("click", () => {
-      els.topAdWrap.style.display = "none";
-    });
-  }
-}
+// ------------------------------------------------------------- preferences
 
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem("curanews_theme", theme);
-  trackEvent("theme_change", { theme });
   els.themeBtns.forEach((b) => b.classList.toggle("is-active", b.dataset.theme === theme));
 }
 
@@ -294,1028 +313,848 @@ function setFontSize(size) {
   els.fontBtns.forEach((b) => b.classList.toggle("is-active", b.dataset.size === size));
 }
 
-// ========================================================
-// API CLIENT
-// ========================================================
-async function api(path, options = {}) {
-  const url = `${API_BASE}${path}`;
-  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
-  if (authToken && !headers.Authorization) {
-    headers.Authorization = `Bearer ${authToken}`;
+function initPreferences() {
+  setTheme(localStorage.getItem("curanews_theme") || "dark");
+  setFontSize(localStorage.getItem("curanews_font_size") || "md");
+  els.themeBtns.forEach((b) => b.addEventListener("click", () => setTheme(b.dataset.theme)));
+  els.fontBtns.forEach((b) => b.addEventListener("click", () => setFontSize(b.dataset.size)));
+
+  const close = () => {
+    els.prefsPanel.hidden = true;
+    els.prefsToggle.setAttribute("aria-expanded", "false");
+  };
+  els.prefsToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = els.prefsPanel.hidden;
+    els.prefsPanel.hidden = !open;
+    els.prefsToggle.setAttribute("aria-expanded", String(open));
+  });
+  els.prefsPanel.addEventListener("click", (e) => e.stopPropagation());
+  document.addEventListener("click", close);
+  document.addEventListener("keydown", (e) => e.key === "Escape" && close());
+}
+
+// ------------------------------------------------------------------ account
+
+function isEditor() {
+  return state.user?.role === "editor";
+}
+
+function updateAuthUI() {
+  const user = state.user;
+  els.topbarAvatar.textContent = user ? initials(user.full_name) : "";
+  els.topbarAvatar.classList.toggle("is-guest", !user);
+  els.topbarUserName.textContent = user ? user.full_name.split(" ")[0] : "Giriş yap";
+  els.topbarUserRole.hidden = !isEditor();
+  els.openEditorBtn.hidden = !isEditor();
+
+  els.authView.hidden = Boolean(user);
+  els.profileView.hidden = !user;
+  if (user) {
+    els.profileAvatar.textContent = initials(user.full_name);
+    els.profileFullName.textContent = user.full_name;
+    els.profileEmail.textContent = user.email || "";
+    els.profileRoleBadge.textContent = isEditor() ? "Editör" : "Okur";
+    els.statReadCount.textContent = String(user.read_count ?? 0);
+    els.statBookmarkCount.textContent = String(user.bookmarks_count ?? state.bookmarks.length);
+    const chosen = new Set(user.preferences?.categories || []);
+    els.interestsContainer.querySelectorAll("input").forEach((input) => {
+      input.checked = chosen.has(input.value);
+    });
   }
 
-  let response;
+  const loggedIn = Boolean(user);
+  els.commentForm.hidden = !loggedIn;
+  els.commentLoginHint.hidden = loggedIn;
+}
+
+async function initAuth() {
+  if (!state.token) return updateAuthUI();
   try {
-    response = await fetch(url, { ...options, headers });
+    state.user = await api("/auth/me");
   } catch {
-    throw new Error("API'ye ulaşılamıyor. Sunucuyu `poetry run python scripts/run_api.py` ile başlatın.");
+    signOutLocally();
   }
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`API hatası (${response.status}): ${detail || response.statusText}`);
+  updateAuthUI();
+}
+
+function signOutLocally() {
+  state.token = null;
+  state.user = null;
+  localStorage.removeItem(TOKEN_STORAGE);
+}
+
+async function completeSignIn(res, greeting) {
+  state.token = res.access_token;
+  state.user = res.user;
+  localStorage.setItem(TOKEN_STORAGE, state.token);
+  updateAuthUI();
+  closeModal(els.profileModal);
+  toast(greeting);
+  await Promise.all([loadBookmarks(), loadFeed({ quiet: true })]);
+}
+
+async function submitLogin(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector("button[type=submit]");
+  button.disabled = true;
+  try {
+    const res = await api("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email: $("loginEmail").value.trim(), password: $("loginPassword").value }),
+    });
+    form.reset();
+    await completeSignIn(res, `Hoş geldiniz, ${res.user.full_name.split(" ")[0]}.`);
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    button.disabled = false;
   }
-  return response.json();
 }
 
-function showError(message) {
-  els.error.hidden = false;
-  els.error.textContent = message;
-}
-
-function clearError() {
-  els.error.hidden = true;
-  els.error.textContent = "";
-}
-
-function showStatus(message) {
-  els.status.hidden = !message;
-  els.status.textContent = message || "";
-}
-
-function setLoading(isLoading) {
-  els.skeleton.hidden = !isLoading;
-  els.skeleton.style.display = isLoading ? "grid" : "none";
-  if (isLoading) {
-    els.feedList.innerHTML = "";
-    els.featuredSlot.hidden = true;
-    els.emptyState.hidden = true;
+async function submitRegister(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector("button[type=submit]");
+  button.disabled = true;
+  try {
+    const res = await api("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        full_name: $("registerName").value.trim(),
+        email: $("registerEmail").value.trim(),
+        password: $("registerPassword").value,
+      }),
+    });
+    form.reset();
+    await completeSignIn(res, "Üyeliğiniz oluşturuldu.");
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    button.disabled = false;
   }
 }
 
-function relativeTime(iso) {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  const delta = Date.now() - date.getTime();
-  const minutes = Math.round(delta / 60000);
-  if (minutes < 1) return "şimdi";
-  if (minutes < 60) return `${minutes} dk önce`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} sa önce`;
-  const days = Math.round(hours / 24);
-  return `${days} gün önce`;
+function logout() {
+  signOutLocally();
+  updateAuthUI();
+  closeModal(els.profileModal);
+  toast("Oturum kapatıldı.");
+  loadBookmarks();
+  loadFeed({ quiet: true });
 }
 
-function formatPublished(iso) {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" });
+async function saveInterests() {
+  const categories = Array.from(els.interestsContainer.querySelectorAll("input:checked"), (i) => i.value);
+  try {
+    state.user = await api("/auth/me", {
+      method: "PUT",
+      body: JSON.stringify({ preferences: { ...(state.user?.preferences || {}), categories } }),
+    });
+    toast("Tercihleriniz kaydedildi.");
+  } catch (err) {
+    toast(err.message, "error");
+  }
 }
 
-function escapeHtml(value) {
-  return String(value || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+function switchAuthTab(tab) {
+  const login = tab === "login";
+  els.tabLogin.classList.toggle("is-active", login);
+  els.tabRegister.classList.toggle("is-active", !login);
+  els.authLoginForm.hidden = !login;
+  els.authRegisterForm.hidden = login;
 }
 
-// ========================================================
-// BOOKMARKS / FAVORİLER
-// ========================================================
+// ------------------------------------------------------------------ modals
+
+let lastFocus = null;
+
+function openModal(modal) {
+  lastFocus = document.activeElement;
+  modal.hidden = false;
+  document.body.classList.add("modal-open");
+  modal.querySelector(".modal-close-btn")?.focus();
+}
+
+function closeModal(modal) {
+  if (modal.hidden) return;
+  modal.hidden = true;
+  if (![els.articleModal, els.editorModal, els.profileModal, els.policyModal].some((m) => !m.hidden)) {
+    document.body.classList.remove("modal-open");
+  }
+  lastFocus?.focus?.();
+}
+
+function wireModal(modal, closeBtn, onClose = () => closeModal(modal)) {
+  closeBtn.addEventListener("click", onClose);
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) onClose();
+  });
+}
+
+// --------------------------------------------------------------- bookmarks
+
+function isBookmarked(item) {
+  return state.bookmarks.some((b) => b.id === item.id) || Boolean(item.is_bookmarked);
+}
+
+function bookmarkLabel(saved, compact = false) {
+  if (compact) return saved ? "★" : "☆";
+  return saved ? "★ Kaydedildi" : "☆ Kaydet";
+}
+
 async function loadBookmarks() {
   try {
-    const res = await api(`/bookmarks?user_id=${encodeURIComponent(currentUser.external_key)}`);
-    bookmarkItems = res.items || [];
-    els.bookmarkCount.textContent = String(bookmarkItems.length);
-    els.statBookmarkCount.textContent = String(bookmarkItems.length);
+    const res = await api(`/bookmarks?${readerQuery()}`);
+    state.bookmarks = res.items || [];
   } catch {
-    bookmarkItems = [];
-    els.bookmarkCount.textContent = "0";
+    state.bookmarks = [];
   }
+  els.bookmarkCount.textContent = String(state.bookmarks.length);
 }
 
-async function toggleBookmark(articleId, button) {
-  clearError();
+async function toggleBookmark(item, button, compact = false) {
   try {
     const res = await api("/bookmarks", {
       method: "POST",
-      body: JSON.stringify({
-        article_id: articleId,
-        user_id: currentUser.external_key,
-      }),
+      body: JSON.stringify({ article_id: item.id, user_id: state.user ? null : readerKey() }),
     });
-
-    const isBookmarked = res.is_bookmarked;
+    item.is_bookmarked = res.is_bookmarked;
     await loadBookmarks();
-
-    // Update in-place
-    const item = latestItems.find((i) => i.id === articleId);
-    if (item) item.is_bookmarked = isBookmarked;
-
     if (button) {
-      button.classList.toggle("is-bookmarked", isBookmarked);
-      button.textContent = isBookmarked ? "★ Kaydedildi" : "⭐ Kaydet";
+      button.classList.toggle("is-bookmarked", res.is_bookmarked);
+      button.textContent = bookmarkLabel(res.is_bookmarked, compact);
+      button.setAttribute("aria-pressed", String(res.is_bookmarked));
     }
-
-    showStatus(isBookmarked ? "Haber favorilerinize eklendi." : "Haber favorilerinizden çıkarıldı.");
-    setTimeout(() => showStatus(""), 2000);
-
-    if (feedView === "bookmarks") {
-      renderFeed();
-    }
+    toast(res.is_bookmarked ? "Haber kaydedildi." : "Haber kaydedilenlerden çıkarıldı.");
+    if (state.view === "bookmarks") renderFeed();
   } catch (err) {
-    showError(err.message || String(err));
+    toast(err.message, "error");
   }
 }
 
-// ========================================================
-// COMMENTS SİSTEMİ
-// ========================================================
+// ------------------------------------------------------------------- reads
+
+function stillOnMainFeed(item) {
+  if (!item.read) return true;
+  const markedAt = item.read_at ? Date.parse(item.read_at) : NaN;
+  if (Number.isNaN(markedAt)) return true;
+  return Date.now() - markedAt < state.graceSeconds * 1000;
+}
+
+async function markRead(item, button) {
+  if (button) {
+    button.disabled = true;
+  }
+  try {
+    await api("/reads", {
+      method: "POST",
+      body: JSON.stringify({ article_id: item.id, user_id: state.user ? null : readerKey(), dwell_ms: 5000 }),
+    });
+    item.read = true;
+    item.read_at = new Date().toISOString();
+    if (button) button.textContent = "✓ Okundu";
+    toast("Okundu olarak işaretlendi. 20 dakika sonra Okunanlar sekmesine taşınır.");
+    loadFeed({ quiet: true, keepScroll: true });
+  } catch (err) {
+    if (button) button.disabled = false;
+    toast(err.message, "error");
+  }
+}
+
+// ---------------------------------------------------------------- comments
+
 async function loadComments(articleId) {
   els.commentsList.innerHTML = `<p class="comments-empty">Yorumlar yükleniyor…</p>`;
   try {
     const res = await api(`/articles/${articleId}/comments`);
     const comments = res.items || [];
     els.commentsCount.textContent = String(comments.length);
-
     if (!comments.length) {
-      els.commentsList.innerHTML = `<p class="comments-empty">Henüz yorum yapılmadı. İlk yorumu siz yazın!</p>`;
+      els.commentsList.innerHTML = `<p class="comments-empty">Henüz yorum yok. İlk yorumu siz yazın.</p>`;
       return;
     }
-
-    els.commentsList.innerHTML = "";
-    comments.forEach((c) => {
-      const card = document.createElement("div");
-      card.className = "comment-card";
-      card.innerHTML = `
-        <div class="comment-card-header">
-          <div class="comment-user-info">
-            <img src="${escapeHtml(c.author_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80')}" alt="Avatar" class="comment-card-avatar" />
-            <span class="comment-author-name">${escapeHtml(c.author_name)}</span>
-          </div>
-          <span class="comment-time">${relativeTime(c.created_at)}</span>
-        </div>
-        <div class="comment-card-body">${escapeHtml(c.content)}</div>
-        <button type="button" class="comment-like-btn" data-id="${c.id}">
-          <span>👍</span> <span class="like-count">${c.likes || 0}</span>
-        </button>
-      `;
-
-      const likeBtn = card.querySelector(".comment-like-btn");
-      likeBtn.onclick = async () => {
-        try {
-          const lRes = await api(`/comments/${c.id}/like`, { method: "POST" });
-          likeBtn.querySelector(".like-count").textContent = String(lRes.likes);
-        } catch (e) {
-          showError(e.message);
-        }
-      };
-
-      els.commentsList.appendChild(card);
-    });
+    els.commentsList.replaceChildren(...comments.map(renderComment));
   } catch {
-    els.commentsList.innerHTML = `<p class="comments-empty">Yorumlar alınamadı.</p>`;
+    els.commentsList.innerHTML = `<p class="comments-empty">Yorumlar şu an yüklenemedi.</p>`;
   }
 }
 
-els.commentForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!activeModalArticle) return;
-  const content = els.commentText.value.trim();
-  if (!content) return;
+function renderComment(c) {
+  const card = document.createElement("article");
+  card.className = "comment-card";
+  card.innerHTML = `
+    <header class="comment-card-header">
+      <div class="comment-user-info">
+        <span class="avatar-initials" aria-hidden="true">${escapeHtml(initials(c.author_name))}</span>
+        <span class="comment-author-name">${escapeHtml(c.author_name)}</span>
+      </div>
+      <time class="comment-time" datetime="${escapeHtml(c.created_at)}">${escapeHtml(relativeTime(c.created_at))}</time>
+    </header>
+    <p class="comment-card-body">${escapeHtml(c.content)}</p>
+    <button type="button" class="comment-like-btn" aria-label="Yorumu beğen">
+      <span aria-hidden="true">👍</span> <span class="like-count">${Number(c.likes) || 0}</span>
+    </button>`;
+  card.querySelector(".comment-like-btn").addEventListener("click", async (event) => {
+    if (!state.user) return openAccount("login");
+    try {
+      const res = await api(`/comments/${c.id}/like`, { method: "POST" });
+      event.currentTarget.querySelector(".like-count").textContent = String(res.likes);
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  });
+  return card;
+}
 
-  clearError();
+async function submitComment(event) {
+  event.preventDefault();
+  if (!state.activeArticle) return;
+  const content = els.commentText.value.trim();
+  if (content.length < 2) return;
+  const button = els.commentForm.querySelector("button[type=submit]");
+  button.disabled = true;
   try {
-    await api(`/articles/${activeModalArticle.id}/comments`, {
+    await api(`/articles/${state.activeArticle.id}/comments`, {
       method: "POST",
-      body: JSON.stringify({
-        content,
-        author_name: currentUser.full_name,
-        author_avatar: currentUser.avatar_url,
-      }),
+      body: JSON.stringify({ content }),
     });
     els.commentText.value = "";
-    showStatus("Yorumunuz başarıyla yayımlandı!");
-    setTimeout(() => showStatus(""), 2500);
-    await loadComments(activeModalArticle.id);
+    toast("Yorumunuz yayımlandı.");
+    await loadComments(state.activeArticle.id);
   } catch (err) {
-    showError(err.message || String(err));
-  }
-});
-
-// ========================================================
-// ONEDIO STYLE EDITOR CMS
-// ========================================================
-function openEditorModal() {
-  els.editorModal.hidden = false;
-  document.body.style.overflow = "hidden";
-}
-
-function closeEditorModal() {
-  els.editorModal.hidden = true;
-  document.body.style.overflow = "";
-}
-
-els.openEditorBtn.addEventListener("click", openEditorModal);
-els.editorCloseBtn.addEventListener("click", closeEditorModal);
-els.editorCancelBtn.addEventListener("click", closeEditorModal);
-
-els.editorForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  clearError();
-
-  const payload = {
-    title: els.editorTitle.value.trim(),
-    category: els.editorCategory.value,
-    author_title: els.editorAuthorTitle.value.trim() || "Baş Editör & Kurucu",
-    summary: els.editorSummary.value.trim(),
-    body: els.editorBody.value.trim(),
-    image_url: els.editorImgUrl.value.trim() || null,
-    video_url: els.editorVideoUrl.value.trim() || null,
-    author_name: currentUser.full_name || "Faruk Tazeoğlu",
-    author_avatar: currentUser.avatar_url,
-  };
-
-  showStatus("Haber CuraNews Editör Masası'nda yayımlanıyor…");
-  try {
-    const created = await api("/editor/articles", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-
-    // Add to top of feed
-    latestItems.unshift(created);
-    closeEditorModal();
-    els.editorForm.reset();
-
-    showStatus("Haberiniz canlı akışa başarıyla eklendi! Tebrikler.");
-    setTimeout(() => showStatus(""), 4000);
-    renderFeed();
-  } catch (err) {
-    showError(err.message || String(err));
-  }
-});
-
-// ========================================================
-// KULLANICI PROFİLİ VE GİRİŞ MODALİ
-// ========================================================
-function openProfileModal() {
-  updateAuthUI();
-  els.profileModal.hidden = false;
-  document.body.style.overflow = "hidden";
-}
-
-function closeProfileModal() {
-  els.profileModal.hidden = true;
-  document.body.style.overflow = "";
-}
-
-els.userProfileBtn.addEventListener("click", openProfileModal);
-els.profileCloseBtn.addEventListener("click", closeProfileModal);
-els.profileDismissBtn.addEventListener("click", closeProfileModal);
-els.profileLogoutBtn.addEventListener("click", logoutUser);
-
-els.tabProfile.addEventListener("click", () => {
-  els.tabProfile.classList.add("is-active");
-  els.tabLogin.classList.remove("is-active");
-  els.profileView.hidden = false;
-  els.loginView.hidden = true;
-});
-
-els.tabLogin.addEventListener("click", () => {
-  els.tabLogin.classList.add("is-active");
-  els.tabProfile.classList.remove("is-active");
-  els.profileView.hidden = true;
-  els.loginView.hidden = false;
-});
-
-// Demo switchers for faculty & jury presentation
-els.btnSwitchEditor.addEventListener("click", () => {
-  loginUser("faruk@curanews.com", "editor123");
-});
-
-els.btnSwitchReader.addEventListener("click", () => {
-  setTheme("sepya");
-  loginUser("okur@curanews.com", "okur123");
-});
-
-els.authLoginForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  loginUser(els.loginEmail.value.trim(), els.loginPassword.value.trim());
-});
-
-// ========================================================
-// SON DAKİKA (BREAKING NEWS) TICKER
-// ========================================================
-function setupBreakingTicker(items) {
-  breakingItems = items.filter((item) => {
-    if (item.is_breaking) return true;
-    const title = (item.title || "").toLowerCase();
-    return title.includes("son dakika") || title.includes("flaş") || title.includes("acil");
-  });
-
-  if (breakingInterval) clearInterval(breakingInterval);
-
-  if (!breakingItems.length) {
-    breakingItems = items.slice(0, 4);
-  }
-
-  if (breakingItems.length) {
-    els.breakingBanner.hidden = false;
-    currentBreakingIndex = 0;
-    updateBreakingHeadline();
-    breakingInterval = setInterval(() => {
-      currentBreakingIndex = (currentBreakingIndex + 1) % breakingItems.length;
-      updateBreakingHeadline();
-    }, 6500);
+    toast(err.message, "error");
+  } finally {
+    button.disabled = false;
   }
 }
 
-function updateBreakingHeadline() {
-  if (!breakingItems.length) return;
-  const current = breakingItems[currentBreakingIndex];
-  els.breakingText.textContent = current.title;
-  els.breakingText.onclick = () => openArticleModal(current);
-  els.breakingOpenBtn.onclick = () => openArticleModal(current);
-}
+// ------------------------------------------------------------ reader modal
 
-// ========================================================
-// SITE İÇİ HABER DETAY MODALİ (IN-SITE READER)
-// ========================================================
-function getCategoryFallbackImage(category) {
-  const c = (category || "").toLowerCase();
-  const map = {
-    ekonomi: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop",
-    teknoloji: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop",
-    spor: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&auto=format&fit=crop",
-    gundem: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop",
-    saglik: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop",
-    dunya: "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop",
-    politika: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&auto=format&fit=crop",
-  };
-  return map[c] || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop";
-}
-
-function openArticleModal(item) {
-  activeModalArticle = item;
-  trackEvent("article_view", {
-    article_id: item.id,
-    title: item.title,
-    category: item.category,
-    source: item.source_name,
-    is_editorial: Boolean(item.is_editorial),
-  });
+function openArticle(item, { push = true } = {}) {
+  state.activeArticle = item;
+  trackEvent("article_view", { article_id: item.id, category: item.category, source: item.source_name });
 
   els.modalTitle.textContent = item.title;
-  els.modalSummary.textContent = item.summary || "";
-
-  // Publisher info and logo
   els.modalSourceName.textContent = item.source_name;
   els.modalAttributionPublisher.textContent = item.source_name;
-  els.modalExternalLink.href = item.url;
-
-  if (item.source_logo) {
-    els.modalSourceLogo.innerHTML = `<img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" onerror="this.style.display='none';" />`;
-  } else {
-    els.modalSourceLogo.innerHTML = "";
-  }
-
-  els.modalPublished.textContent = relativeTime(item.published_at) || formatPublished(item.published_at);
+  els.modalPublished.textContent = fullDate(item.published_at);
+  els.modalPublished.dateTime = item.published_at || "";
   els.modalCategory.textContent = item.category_name || "Gündem";
   els.modalReadTime.textContent = `${item.read_time_minutes || 1} dk okuma`;
 
-  // Hero image with reliable category fallback
-  const fallbackHero = getCategoryFallbackImage(item.category);
-  const heroSrc = item.image_url || fallbackHero;
-  els.modalHeroWrap.hidden = false;
-  els.modalHeroImg.src = heroSrc;
-  els.modalHeroImg.onerror = () => {
-    els.modalHeroImg.src = fallbackHero;
-  };
+  const logo = safeUrl(item.source_logo, ["data:", "https:"]);
+  els.modalSourceLogo.innerHTML = logo ? `<img src="${escapeHtml(logo)}" alt="" />` : "";
 
-  // Video embed (if present)
-  if (item.video_url) {
-    els.modalVideoWrap.hidden = false;
-    let embedUrl = item.video_url;
-    if (embedUrl.includes("watch?v=")) {
-      embedUrl = embedUrl.replace("watch?v=", "embed/");
-    }
-    els.modalVideoIframe.src = embedUrl;
-  } else {
-    els.modalVideoWrap.hidden = true;
-    els.modalVideoIframe.src = "";
-  }
+  const fallback = categoryImage(item.category);
+  els.modalHeroImg.dataset.fallback = fallback;
+  delete els.modalHeroImg.dataset.fallbackApplied;
+  els.modalHeroImg.style.visibility = "";
+  els.modalHeroImg.src = safeUrl(item.image_url) || fallback;
+  els.modalHeroImg.alt = item.title;
 
-  // Onedio-style author box (if editorial)
+  const embed = safeEmbedUrl(item.video_url);
+  els.modalVideoWrap.hidden = !embed;
+  els.modalVideoIframe.src = embed || "about:blank";
+
+  els.modalAuthorBox.hidden = !item.is_editorial;
   if (item.is_editorial) {
-    els.modalAuthorBox.hidden = false;
-    els.modalAuthorName.textContent = item.author_display || "Faruk Tazeoğlu";
-    els.modalAuthorTitle.textContent = item.author_title || "Baş Editör & Kurucu";
-    els.modalAuthorAvatar.src = item.author_avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150";
-  } else {
-    els.modalAuthorBox.hidden = true;
+    els.modalAuthorName.textContent = item.author_display || "CuraNews Editörü";
+    els.modalAuthorTitle.textContent = item.author_title || "Editör";
+    els.modalAuthorAvatar.textContent = initials(item.author_display);
   }
 
-  // Multi-paragraph body rendering
-  const fullText = item.body || item.summary || "";
-  const paragraphs = fullText
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+  const summary = (item.summary || "").trim();
+  const body = (item.body || "").trim();
+  const normalize = (s) => s.replace(/\s+/g, " ").trim();
+  let paragraphs = body && normalize(body) !== normalize(summary)
+    ? body.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
+    : [];
+  if (paragraphs.length && normalize(paragraphs[0]) === normalize(summary)) paragraphs = paragraphs.slice(1);
+  els.modalSummary.textContent = summary;
+  els.modalSummary.hidden = !summary;
+  els.modalContent.innerHTML = paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("");
 
-  if (paragraphs.length) {
-    els.modalContent.innerHTML = paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("");
-  } else {
-    els.modalContent.innerHTML = `<p>${escapeHtml(item.summary || "Bu haberin detaylı metni kaynak bağlantısında yer almaktadır.")}</p>`;
-  }
+  els.modalAttribution.hidden = Boolean(item.is_editorial);
+  els.modalExternalLink.href = safeUrl(item.url) || "#";
+  els.modalExternalLink.textContent = `Haberin tamamını ${item.source_name} sitesinde okuyun ↗`;
+  els.modalPermalink.href = pageHref(item);
 
-  // Bookmark button
-  const isBookmarked = bookmarkItems.some((b) => b.id === item.id) || Boolean(item.is_bookmarked);
-  els.modalBookmarkBtn.classList.toggle("is-bookmarked", isBookmarked);
-  els.modalBookmarkBtn.textContent = isBookmarked ? "★ Kaydedildi" : "⭐ Kaydet";
-  els.modalBookmarkBtn.onclick = () => toggleBookmark(item.id, els.modalBookmarkBtn);
+  const saved = isBookmarked(item);
+  els.modalBookmarkBtn.textContent = bookmarkLabel(saved);
+  els.modalBookmarkBtn.classList.toggle("is-bookmarked", saved);
+  els.modalBookmarkBtn.onclick = () => toggleBookmark(item, els.modalBookmarkBtn);
 
-  // Read status
-  if (item.read) {
-    els.modalMarkReadBtn.textContent = "✓ Okundu Olarak İşaretlendi";
-    els.modalMarkReadBtn.disabled = true;
-  } else {
-    els.modalMarkReadBtn.textContent = "Okundu Olarak İşaretle";
-    els.modalMarkReadBtn.disabled = false;
-    els.modalMarkReadBtn.onclick = async () => {
-      await markRead(item.id, els.modalMarkReadBtn);
-      item.read = true;
-      els.modalMarkReadBtn.textContent = "✓ Okundu";
-      els.modalMarkReadBtn.disabled = true;
-    };
-  }
+  els.modalMarkReadBtn.disabled = Boolean(item.read);
+  els.modalMarkReadBtn.textContent = item.read ? "✓ Okundu" : "✓ Okudum";
+  els.modalMarkReadBtn.onclick = () => markRead(item, els.modalMarkReadBtn);
 
-  // Share
-  els.modalShareBtn.onclick = () => {
-    navigator.clipboard?.writeText(item.url);
-    showStatus("Haber bağlantısı panoya kopyalandı!");
-    setTimeout(() => showStatus(""), 3000);
+  els.modalShareBtn.onclick = async () => {
+    const url = new URL(pageHref(item), window.location.origin).href;
+    try {
+      if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+        await navigator.share({ title: item.title, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast("Bağlantı kopyalandı.");
+      }
+    } catch {
+      /* user dismissed the share sheet */
+    }
   };
 
-  // Comments
   loadComments(item.id);
+  openModal(els.articleModal);
+  els.articleModal.querySelector(".modal-body").scrollTop = 0;
 
-  els.articleModal.hidden = false;
-  document.body.style.overflow = "hidden";
-}
-
-function closeArticleModal() {
-  els.articleModal.hidden = true;
-  document.body.style.overflow = "";
-  els.modalVideoIframe.src = "";
-  activeModalArticle = null;
-}
-
-els.modalCloseBtn.addEventListener("click", closeArticleModal);
-els.modalDismissBtn.addEventListener("click", closeArticleModal);
-els.articleModal.addEventListener("click", (e) => {
-  if (e.target === els.articleModal) closeArticleModal();
-});
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    if (!els.articleModal.hidden) closeArticleModal();
-    if (!els.editorModal.hidden) closeEditorModal();
-    if (!els.profileModal.hidden) closeProfileModal();
+  if (push) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("haber", item.id);
+    history.pushState({ haber: item.id }, "", url);
   }
-});
+  document.title = `${item.title} | CuraNews`;
+}
 
-// ========================================================
-// FEED RENDERING & FILTERING
-// ========================================================
-function itemMatchesFilters(item) {
-  if (selectedCategory) {
-    const itemCat = (item.category || "").toLowerCase();
-    if (itemCat !== selectedCategory.toLowerCase()) {
-      return false;
+function closeArticle({ pop = false } = {}) {
+  if (els.articleModal.hidden) return;
+  closeModal(els.articleModal);
+  els.modalVideoIframe.src = "about:blank";
+  state.activeArticle = null;
+  document.title = "CuraNews — Güncel Haberler, Son Dakika ve Gündem";
+  if (!pop) {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("haber")) {
+      url.searchParams.delete("haber");
+      history.pushState({}, "", url);
     }
   }
+}
 
-  const query = els.searchInput.value.trim().toLowerCase();
-  if (query) {
-    const haystack = [item.title, item.summary, item.source_name, item.category_name, ...(item.entities || [])]
-      .join(" ")
-      .toLowerCase();
-    if (!haystack.includes(query)) return false;
+async function openArticleById(id) {
+  const known = [...state.items, ...state.readItems, ...state.bookmarks].find((i) => i.id === id);
+  if (known) return openArticle(known, { push: false });
+  try {
+    openArticle(await api(`/articles/${encodeURIComponent(id)}`), { push: false });
+  } catch {
+    toast("Haber bulunamadı.", "error");
   }
+}
 
-  const topic = els.topicSelect.value.trim().toLowerCase();
-  if (topic) {
-    const haystack = [item.title, item.summary, ...(item.entities || [])].join(" ").toLowerCase();
-    if (!haystack.includes(topic)) return false;
-  }
+// --------------------------------------------------------------- rendering
 
-  return true;
+function itemMatchesFilters(item) {
+  if (state.category && (item.category || "").toLowerCase() !== state.category) return false;
+  const query = els.searchInput.value.trim().toLocaleLowerCase("tr-TR");
+  if (!query) return true;
+  return [item.title, item.summary, item.source_name, item.category_name, ...(item.entities || [])]
+    .join(" ")
+    .toLocaleLowerCase("tr-TR")
+    .includes(query);
+}
+
+function linkClick(item) {
+  return (event) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) return;
+    event.preventDefault();
+    openArticle(item);
+  };
+}
+
+function imageTag(item, className, eager = false) {
+  const fallback = categoryImage(item.category);
+  const src = safeUrl(item.image_url) || fallback;
+  const loading = eager ? 'fetchpriority="high"' : 'loading="lazy" decoding="async"';
+  return `<img src="${escapeHtml(src)}" data-fallback="${escapeHtml(fallback)}" alt="" class="${className}" ${loading} />`;
+}
+
+function sourceBadge(item) {
+  const logo = safeUrl(item.source_logo, ["data:", "https:"]);
+  return logo
+    ? `<span class="source-logo-wrap"><img src="${escapeHtml(logo)}" alt="${escapeHtml(item.source_name)}" /></span>`
+    : `<span class="badge-cat">${escapeHtml(item.source_name)}</span>`;
 }
 
 function renderFeatured(item) {
+  const saved = isBookmarked(item);
   els.featuredSlot.hidden = false;
   els.featuredSlot.classList.toggle("is-read", Boolean(item.read));
-
-  const fallbackFeatured = getCategoryFallbackImage(item.category);
-  const featuredSrc = item.image_url || fallbackFeatured;
-  const imgHtml = `<div class="featured-media"><img src="${escapeHtml(featuredSrc)}" alt="${escapeHtml(item.title)}" class="featured-img" onerror="this.src='${fallbackFeatured}';" /></div>`;
-
-  const logoHtml = item.source_logo
-    ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" onerror="this.style.display='none';" /></span>`
-    : `<span class="badge-cat">${escapeHtml(item.source_name)}</span>`;
-
-  const isBookmarked = bookmarkItems.some((b) => b.id === item.id) || Boolean(item.is_bookmarked);
-
   els.featuredSlot.innerHTML = `
-    ${imgHtml}
+    <a class="featured-media" href="${escapeHtml(pageHref(item))}" tabindex="-1" aria-hidden="true">${imageTag(item, "featured-img", true)}</a>
     <div class="featured-content">
       <div class="featured-top-line">
-        ${logoHtml}
+        ${sourceBadge(item)}
         <span class="badge-cat">${escapeHtml(item.category_name || "Gündem")}</span>
-        <span class="time-read">${relativeTime(item.published_at)} · ${item.read_time_minutes || 1} dk okuma</span>
+        <time class="time-read" datetime="${escapeHtml(item.published_at || "")}">${escapeHtml(relativeTime(item.published_at))} · ${item.read_time_minutes || 1} dk okuma</time>
       </div>
-      <h3 class="featured-title"><a href="javascript:void(0)">${escapeHtml(item.title)}</a></h3>
-      <p class="featured-summary">${escapeHtml(item.summary || "Haberin detayları için tıklayınız.")}</p>
+      <h2 class="featured-title"><a href="${escapeHtml(pageHref(item))}">${escapeHtml(item.title)}</a></h2>
+      <p class="featured-summary">${escapeHtml(item.summary || "")}</p>
       <div class="featured-actions">
-        <button type="button" class="btn primary btn-open-feature">Haberi Oku</button>
-        <button type="button" class="btn secondary btn-bm-feature">${isBookmarked ? "★ Kaydedildi" : "⭐ Kaydet"}</button>
-        <button type="button" class="btn ghost btn-mark-feature">${item.read ? "✓ Okundu" : "Okundu İşaretle"}</button>
+        <a class="btn primary" href="${escapeHtml(pageHref(item))}" data-open>Haberi oku</a>
+        <button type="button" class="btn secondary" data-bookmark aria-pressed="${saved}">${bookmarkLabel(saved)}</button>
+        <button type="button" class="btn ghost" data-read ${item.read ? "disabled" : ""}>${item.read ? "✓ Okundu" : "✓ Okudum"}</button>
       </div>
-    </div>
-  `;
-
-  els.featuredSlot.querySelector(".featured-title a").onclick = () => openArticleModal(item);
-  els.featuredSlot.querySelector(".btn-open-feature").onclick = () => openArticleModal(item);
-
-  const bmBtn = els.featuredSlot.querySelector(".btn-bm-feature");
-  bmBtn.onclick = () => toggleBookmark(item.id, bmBtn);
-
-  const markBtn = els.featuredSlot.querySelector(".btn-mark-feature");
-  if (markBtn && !item.read) {
-    markBtn.onclick = () => markRead(item.id, markBtn);
-  }
+    </div>`;
+  els.featuredSlot.querySelectorAll("a").forEach((a) => a.addEventListener("click", linkClick(item)));
+  const bm = els.featuredSlot.querySelector("[data-bookmark]");
+  bm.addEventListener("click", () => toggleBookmark(item, bm));
+  const rd = els.featuredSlot.querySelector("[data-read]");
+  if (!item.read) rd.addEventListener("click", () => markRead(item, rd));
 }
 
-function renderCard(item, index) {
+function renderCard(item) {
   const li = document.createElement("li");
   li.className = `feed-item${item.read ? " is-read" : ""}`;
-
-  const fallbackCard = getCategoryFallbackImage(item.category);
-  const cardSrc = item.image_url || fallbackCard;
-  const imgHtml = `<div class="card-media"><img src="${escapeHtml(cardSrc)}" alt="${escapeHtml(item.title)}" class="card-img" onerror="this.src='${fallbackCard}';" /></div>`;
-
-  const logoHtml = item.source_logo
-    ? `<span class="source-logo-wrap"><img src="${item.source_logo}" alt="${escapeHtml(item.source_name)}" onerror="this.style.display='none';" /></span>`
-    : `<span class="badge-cat">${escapeHtml(item.source_name)}</span>`;
-
-  const isBookmarked = bookmarkItems.some((b) => b.id === item.id) || Boolean(item.is_bookmarked);
-
+  const saved = isBookmarked(item);
   li.innerHTML = `
-    ${imgHtml}
+    <a class="card-media" href="${escapeHtml(pageHref(item))}" tabindex="-1" aria-hidden="true">${imageTag(item, "card-img")}</a>
     <div class="card-body">
       <div class="card-meta-top">
-        ${logoHtml}
+        ${sourceBadge(item)}
         <span class="badge-cat">${escapeHtml(item.category_name || "Gündem")}</span>
-        <span class="time-read">${relativeTime(item.published_at)}</span>
       </div>
-      <h3 class="card-title">${escapeHtml(item.title)}</h3>
-      <p class="card-summary">${escapeHtml(item.summary || "Özet yok.")}</p>
+      <h3 class="card-title"><a href="${escapeHtml(pageHref(item))}">${escapeHtml(item.title)}</a></h3>
+      <p class="card-summary">${escapeHtml(item.summary || "")}</p>
       <div class="card-footer">
+        <time class="time-read" datetime="${escapeHtml(item.published_at || "")}">${escapeHtml(relativeTime(item.published_at))} · ${item.read_time_minutes || 1} dk</time>
         <div class="card-actions-left">
-          <button type="button" class="btn-read-modal">Haberi Oku</button>
-          <button type="button" class="btn-bm-card ${isBookmarked ? 'is-bookmarked' : ''}" title="Favorilere Ekle">${isBookmarked ? '★' : '☆'}</button>
-          <button type="button" class="btn-mark-read">${item.read ? "✓" : "Okundu"}</button>
+          <button type="button" class="icon-action${saved ? " is-bookmarked" : ""}" data-bookmark aria-pressed="${saved}" aria-label="Kaydet" title="Kaydet">${bookmarkLabel(saved, true)}</button>
+          <button type="button" class="icon-action${item.read ? " is-done" : ""}" data-read ${item.read ? "disabled" : ""} aria-label="Okundu olarak işaretle" title="Okundu olarak işaretle">✓</button>
         </div>
-        <span class="time-read">${item.read_time_minutes || 1} dk okuma</span>
       </div>
-    </div>
-  `;
-
-  li.querySelector(".card-title").onclick = () => openArticleModal(item);
-  li.querySelector(".btn-read-modal").onclick = () => openArticleModal(item);
-
-  const bmBtn = li.querySelector(".btn-bm-card");
-  bmBtn.onclick = () => toggleBookmark(item.id, bmBtn);
-
-  const markBtn = li.querySelector(".btn-mark-read");
-  if (markBtn && !item.read) {
-    markBtn.onclick = () => markRead(item.id, markBtn);
-  }
-
+    </div>`;
+  li.querySelectorAll("a").forEach((a) => a.addEventListener("click", linkClick(item)));
+  const bm = li.querySelector("[data-bookmark]");
+  bm.addEventListener("click", () => toggleBookmark(item, bm, true));
+  const rd = li.querySelector("[data-read]");
+  if (!item.read) rd.addEventListener("click", () => markRead(item, rd));
   return li;
 }
 
-function renderSponsoredCard() {
-  const li = document.createElement("li");
-  li.className = "feed-item is-sponsored";
-  li.innerHTML = `
-    <div class="card-body">
-      <div class="card-meta-top">
-        <span class="sponsored-badge">SPONSORLU</span>
-        <span class="time-read">Tanıtım</span>
-      </div>
-      <h3 class="card-title">CuraNews Pro: Tarafsız ve Hızlı Haber Toplayıcı</h3>
-      <p class="card-summary">En seçkin Türk ve dünya haber kaynaklarını tek ekranda toplayan yeni nesil haber masası deneyimi.</p>
-      <div class="card-footer">
-        <button type="button" class="btn-read-modal btn-sponsor-inspect" style="background:var(--accent);color:#082823;cursor:pointer;font-weight:700;">İncele →</button>
-      </div>
-    </div>
-  `;
-  const btn = li.querySelector(".btn-sponsor-inspect");
-  if (btn) {
-    btn.onclick = () => {
-      trackEvent("ad_click", { ad_unit: "native_feed_sponsor", product: "CuraNews Pro" });
-      openPolicyModal();
-    };
-  }
-  return li;
+function sourceItems() {
+  if (state.view === "bookmarks") return state.bookmarks;
+  if (state.view === "read") return state.readItems;
+  return state.items;
 }
-
-// ========================================================
-// INFINITE SCROLL & CHUNK RENDERING
-// ========================================================
-let currentFilteredItems = [];
-let renderedCardCount = 0;
-const INITIAL_CHUNK_SIZE = 8;
-const NEXT_CHUNK_SIZE = 8;
-let isFetchingMore = false;
-let hasMoreRemoteArticles = true;
-let remoteArticlesOffset = 48;
-let infiniteScrollObserver = null;
 
 function renderFeed() {
-  let sourceItems = latestItems;
-  if (feedView === "bookmarks") {
-    sourceItems = bookmarkItems;
-  } else if (feedView === "read") {
-    sourceItems = readItems;
-  }
-
-  const filtered = sourceItems.filter((item) => {
-    if (feedView === "all" && item.read && !stillOnMainFeed(item)) return false;
-    if (feedView === "read" && !item.read) return false;
+  state.filtered = sourceItems().filter((item) => {
+    if (state.view === "all" && item.read && !stillOnMainFeed(item)) return false;
     return itemMatchesFilters(item);
   });
-
-  currentFilteredItems = filtered;
-  renderedCardCount = 0;
-  els.feedList.innerHTML = "";
+  state.rendered = 0;
+  els.feedList.replaceChildren();
   els.featuredSlot.hidden = true;
-  els.emptyState.hidden = filtered.length > 0;
+  els.scrollEnd.hidden = true;
 
-  if (els.infiniteScrollSpinner) els.infiniteScrollSpinner.hidden = true;
-  if (els.infiniteScrollEnd) els.infiniteScrollEnd.hidden = true;
-  if (els.infiniteScrollSentinel) els.infiniteScrollSentinel.hidden = filtered.length === 0;
+  const empty = state.filtered.length === 0;
+  els.emptyState.hidden = !empty;
+  els.emptyState.textContent =
+    state.view === "bookmarks"
+      ? "Henüz kaydettiğiniz bir haber yok. Kartlardaki ☆ simgesiyle kaydedebilirsiniz."
+      : state.view === "read"
+        ? "Okundu olarak işaretlediğiniz haberler burada listelenir."
+        : "Bu filtreye uygun haber bulunamadı.";
 
-  if (feedView === "bookmarks") {
-    els.emptyState.textContent = "Henüz favoriye eklediğiniz bir haber yok. Haber kartlarındaki ⭐ butonuna basarak kaydedebilirsiniz.";
-  } else {
-    els.emptyState.textContent = "Bu filtreye uygun haber bulunamadı. Kategori veya aramayı temizleyebilirsiniz.";
-  }
+  const heading = state.category ? `${CATEGORY_NAMES[state.category]} haberleri` : "Gündemdeki haberler";
+  els.feedHeading.textContent =
+    state.view === "bookmarks" ? "Kaydedilenler" : state.view === "read" ? "Okunanlar" : heading;
+  els.feedCount.textContent = empty ? "" : `${state.filtered.length} haber`;
+  if (empty) return;
 
-  const readCount = (readItems.length ? readItems : sourceItems).filter((i) => i.read).length;
-  els.feedCount.textContent = filtered.length
-    ? `${filtered.length} haber görünür · ${readCount} okundu`
-    : "0 haber";
-
-  if (!filtered.length) return;
-
-  renderFeatured(filtered[0]);
-
-  // Render first batch of cards
-  renderNextChunk(INITIAL_CHUNK_SIZE);
-
-  // Setup intersection observer for seamless infinite scroll
-  setupInfiniteScrollObserver();
+  renderFeatured(state.filtered[0]);
+  renderNextChunk(INITIAL_CHUNK);
 }
 
-function renderNextChunk(chunkSize = NEXT_CHUNK_SIZE) {
-  const rest = currentFilteredItems.slice(1);
-  if (!rest.length || renderedCardCount >= rest.length) return;
-
-  const toRender = rest.slice(renderedCardCount, renderedCardCount + chunkSize);
-  toRender.forEach((item, idx) => {
-    const globalIndex = renderedCardCount + idx + 1;
-    if (globalIndex === 5) {
-      els.feedList.appendChild(renderSponsoredCard());
-    }
-    els.feedList.appendChild(renderCard(item, globalIndex));
-  });
-
-  renderedCardCount += toRender.length;
-
-  if (renderedCardCount >= rest.length) {
-    if (feedView !== "all" || els.searchInput.value.trim() || !hasMoreRemoteArticles) {
-      if (els.infiniteScrollEnd) els.infiniteScrollEnd.hidden = false;
-    }
+function renderNextChunk(size = NEXT_CHUNK) {
+  const rest = state.filtered.slice(1);
+  const slice = rest.slice(state.rendered, state.rendered + size);
+  els.feedList.append(...slice.map(renderCard));
+  state.rendered += slice.length;
+  const exhausted = state.rendered >= rest.length;
+  if (exhausted && (state.view !== "all" || !state.hasMoreRemote || els.searchInput.value.trim())) {
+    els.scrollEnd.hidden = rest.length === 0;
   }
 }
 
-async function fetchMoreArticles() {
-  if (isFetchingMore || !hasMoreRemoteArticles) return;
-  if (feedView !== "all" || els.searchInput.value.trim()) return;
-
-  isFetchingMore = true;
-  if (els.infiniteScrollSpinner) els.infiniteScrollSpinner.hidden = false;
-  if (els.infiniteScrollEnd) els.infiniteScrollEnd.hidden = true;
-
+async function fetchMore() {
+  if (state.fetchingMore || !state.hasMoreRemote || state.view !== "all" || els.searchInput.value.trim()) return;
+  state.fetchingMore = true;
+  els.spinner.hidden = false;
   try {
-    const catQuery = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
-    const res = await api(`/articles?offset=${remoteArticlesOffset}&limit=20${catQuery}`);
-    const newArticles = (res.items || []).filter((item) => !latestItems.some((ex) => ex.id === item.id));
-
-    if (newArticles.length > 0) {
-      latestItems.push(...newArticles);
-      remoteArticlesOffset += 20;
-
-      // Re-filter and render
-      let sourceItems = latestItems;
-      currentFilteredItems = sourceItems.filter((item) => {
-        if (feedView === "all" && item.read && !stillOnMainFeed(item)) return false;
-        return itemMatchesFilters(item);
-      });
-
-      renderNextChunk(NEXT_CHUNK_SIZE);
-      els.feedCount.textContent = `${currentFilteredItems.length} haber görünür · ${readItems.length} okundu`;
-    } else {
-      hasMoreRemoteArticles = false;
-      if (els.infiniteScrollEnd) els.infiniteScrollEnd.hidden = false;
+    const cat = state.category ? `&category=${encodeURIComponent(state.category)}` : "";
+    const res = await api(`/articles?offset=${state.remoteOffset}&limit=${PAGE_SIZE}${cat}`);
+    const known = new Set(state.items.map((i) => i.id));
+    const fresh = (res.items || []).filter((i) => !known.has(i.id));
+    state.remoteOffset += PAGE_SIZE;
+    if (!res.items?.length) state.hasMoreRemote = false;
+    if (fresh.length) {
+      state.items.push(...fresh);
+      state.filtered.push(...fresh.filter(itemMatchesFilters));
+      renderNextChunk(NEXT_CHUNK);
+      els.feedCount.textContent = `${state.filtered.length} haber`;
     }
-  } catch (err) {
-    console.debug("[CuraNews] fetchMoreArticles error:", err);
-    hasMoreRemoteArticles = false;
-    if (els.infiniteScrollEnd) els.infiniteScrollEnd.hidden = false;
+  } catch {
+    state.hasMoreRemote = false;
   } finally {
-    isFetchingMore = false;
-    if (els.infiniteScrollSpinner) els.infiniteScrollSpinner.hidden = true;
+    state.fetchingMore = false;
+    els.spinner.hidden = true;
+    if (!state.hasMoreRemote) els.scrollEnd.hidden = false;
   }
 }
 
-function setupInfiniteScrollObserver() {
-  if (infiniteScrollObserver) {
-    infiniteScrollObserver.disconnect();
+function setupInfiniteScroll() {
+  new IntersectionObserver(
+    (entries) => {
+      if (!entries[0]?.isIntersecting || !state.filtered.length) return;
+      if (state.rendered < state.filtered.length - 1) renderNextChunk();
+      else fetchMore();
+    },
+    { rootMargin: "400px" },
+  ).observe(els.sentinel);
+}
+
+// ----------------------------------------------------------- breaking news
+
+let breakingTimer = null;
+function setupBreaking(items) {
+  clearInterval(breakingTimer);
+  const breaking = items.filter((i) => i.is_breaking);
+  const list = breaking.length ? breaking : items.slice(0, 5);
+  els.breakingBanner.hidden = !list.length;
+  if (!list.length) return;
+  els.breakingLabel.textContent = breaking.length ? "SON DAKİKA" : "ÖNE ÇIKAN";
+  els.breakingBanner.classList.toggle("is-calm", !breaking.length);
+  let index = 0;
+  const show = () => {
+    const current = list[index % list.length];
+    els.breakingText.textContent = current.title;
+    els.breakingText.href = pageHref(current);
+    els.breakingText.onclick = linkClick(current);
+    index += 1;
+  };
+  show();
+  if (list.length > 1) breakingTimer = setInterval(show, 7000);
+}
+
+// --------------------------------------------------------------- feed load
+
+async function loadFeed({ quiet = false, keepScroll = false } = {}) {
+  const hasContent = state.items.length > 0 || els.feedList.children.length > 0;
+  if (!hasContent) {
+    els.skeleton.hidden = false;
   }
-  if (!els.infiniteScrollSentinel) return;
-
-  infiniteScrollObserver = new IntersectionObserver((entries) => {
-    const entry = entries[0];
-    if (entry && entry.isIntersecting) {
-      const rest = currentFilteredItems.slice(1);
-      if (renderedCardCount < rest.length) {
-        renderNextChunk(NEXT_CHUNK_SIZE);
-      } else if (hasMoreRemoteArticles && !isFetchingMore) {
-        fetchMoreArticles();
-      }
-    }
-  }, { rootMargin: "350px" });
-
-  infiniteScrollObserver.observe(els.infiniteScrollSentinel);
-}
-
-
-function stillOnMainFeed(item) {
-  if (!item.read) return true;
-  const markedAt = item.read_at ? Date.parse(item.read_at) : NaN;
-  if (Number.isNaN(markedAt)) return true;
-  return Date.now() - markedAt < inboxGraceSeconds * 1000;
-}
-
-function setupCategoryNavbar() {
-  const pills = els.categoryScroll.querySelectorAll(".cat-pill");
-  pills.forEach((pill) => {
-    pill.addEventListener("click", () => {
-      pills.forEach((p) => p.classList.remove("is-active"));
-      pill.classList.add("is-active");
-      selectedCategory = pill.dataset.category || "";
-      renderFeed();
-    });
-  });
-}
-
-async function loadFeed(options = {}) {
-  const quiet = Boolean(options.quiet);
-  clearError();
-  if (!quiet) showStatus("Haber masası güncelleniyor…");
-  setLoading(true);
   els.refreshBtn.disabled = true;
-
+  els.refreshBtn.classList.add("is-spinning");
+  const scrollY = window.scrollY;
   try {
-    hasMoreRemoteArticles = true;
-    remoteArticlesOffset = 48;
-    let userId = currentUser.external_key || "demo-editor";
-    let data;
-    try {
-      data = await api(`/feed?user_id=${encodeURIComponent(userId)}&limit=48`);
-    } catch (feedErr) {
-      if (userId !== "demo-user-a") {
-        console.warn(`[CuraNews] Fallback to demo-user-a from ${userId}:`, feedErr);
-        data = await api(`/feed?user_id=demo-user-a&limit=48`);
-      } else {
-        throw feedErr;
-      }
-    }
-
-    latestItems = data.items || [];
-    readItems = data.read_items || latestItems.filter((i) => i.read);
-    inboxGraceSeconds = Number(data.inbox_grace_seconds) || 20 * 60;
-
-    const cache = data.cache || "—";
-    els.cacheBadge.textContent = `cache · ${cache}`;
-    els.cacheBadge.dataset.state = cache;
-
-    setupBreakingTicker(latestItems);
-    await loadBookmarks();
+    const query = readerQuery();
+    const data = await api(`/feed?limit=${FEED_LIMIT}${query ? `&${query}` : ""}`);
+    state.items = data.items || [];
+    state.readItems = data.read_items || [];
+    state.graceSeconds = Number(data.inbox_grace_seconds) || 20 * 60;
+    state.remoteOffset = FEED_LIMIT;
+    state.hasMoreRemote = true;
+    setupBreaking(state.items);
     renderFeed();
-
-    if (!quiet) {
-      showStatus(`${latestItems.length} haber kürate edildi · ${currentUser.full_name} masası aktif`);
-    }
+    if (keepScroll) window.scrollTo({ top: scrollY });
+    if (!quiet) toast("Akış güncellendi.");
   } catch (err) {
-    latestItems = [];
-    readItems = [];
-    els.feedList.innerHTML = "";
-    els.featuredSlot.hidden = true;
-    showError(err.message || String(err));
-    setupBreakingTicker([
-      { title: "CuraNews Canlı Yayında: Truncgil Teknoloji Altyapısıyla Akıllı Haber Akışı Devrede", url: "#feedList", is_breaking: true }
-    ]);
+    if (!hasContent) {
+      els.emptyState.hidden = false;
+      els.emptyState.textContent = "Haberler şu an yüklenemedi. Lütfen birazdan tekrar deneyin.";
+    }
+    toast(err.message, "error");
   } finally {
-    setLoading(false);
+    els.skeleton.hidden = true;
     els.refreshBtn.disabled = false;
+    els.refreshBtn.classList.remove("is-spinning");
   }
 }
 
-
-async function markRead(articleId, button) {
-  clearError();
-  if (button) {
-    button.disabled = true;
-    button.textContent = "Kaydediliyor…";
+function setView(view) {
+  state.view = view;
+  for (const [btn, name] of [[els.viewAll, "all"], [els.viewBookmarks, "bookmarks"], [els.viewRead, "read"]]) {
+    btn.classList.toggle("is-active", name === view);
+    btn.setAttribute("aria-selected", String(name === view));
   }
+  renderFeed();
+}
 
+function setCategory(slug, { push = true } = {}) {
+  state.category = slug;
+  els.categoryScroll.querySelectorAll(".cat-pill").forEach((pill) => {
+    const active = (pill.dataset.category || "") === slug;
+    pill.classList.toggle("is-active", active);
+    if (active) pill.setAttribute("aria-current", "page");
+    else pill.removeAttribute("aria-current");
+  });
+  if (push) {
+    const url = new URL(window.location.href);
+    if (slug) url.searchParams.set("kategori", slug);
+    else url.searchParams.delete("kategori");
+    history.replaceState(history.state, "", url);
+  }
+  state.hasMoreRemote = true;
+  state.remoteOffset = FEED_LIMIT;
+  if (state.items.length) renderFeed();
+}
+
+// ----------------------------------------------------------------- editor
+
+async function submitEditor(event) {
+  event.preventDefault();
+  const button = els.editorForm.querySelector("button[type=submit]");
+  button.disabled = true;
   try {
-    await api("/reads", {
+    const created = await api("/editor/articles", {
       method: "POST",
       body: JSON.stringify({
-        user_id: currentUser.external_key,
-        article_id: articleId,
-        dwell_ms: 5000,
+        title: $("editorTitle").value.trim(),
+        category: $("editorCategory").value,
+        author_title: $("editorAuthorTitle").value.trim() || "Editör",
+        summary: $("editorSummary").value.trim(),
+        body: $("editorBody").value.trim(),
+        image_url: $("editorImgUrl").value.trim() || null,
+        video_url: $("editorVideoUrl").value.trim() || null,
       }),
     });
-    await loadFeed({ quiet: true });
-    showStatus("Haber okundu olarak kaydedildi.");
-    setTimeout(() => showStatus(""), 2500);
+    state.items.unshift(created);
+    els.editorForm.reset();
+    closeModal(els.editorModal);
+    renderFeed();
+    toast("Haber yayımlandı.");
   } catch (err) {
-    showError(err.message || String(err));
-    if (button) {
-      button.disabled = false;
-      button.textContent = "Okundu";
-    }
+    toast(err.message, "error");
+  } finally {
+    button.disabled = false;
   }
 }
 
-function syncPersonas() {
-  const current = currentUser.external_key || (els.userSelect ? els.userSelect.value : "");
-  if (els.userSelect && current && Array.from(els.userSelect.options).some(o => o.value === current)) {
-    els.userSelect.value = current;
-  }
-  document.querySelectorAll(".persona").forEach((btn) => {
-    btn.classList.toggle("is-active", btn.dataset.user === current);
+// ------------------------------------------------------- consent & analytics
+
+function gaId() {
+  return document.querySelector('meta[name="curanews-ga"]')?.content || "";
+}
+
+function trackEvent(name, params = {}) {
+  if (typeof window.gtag === "function") window.gtag("event", name, params);
+}
+
+function loadAnalytics(id) {
+  if (window.gtag) return;
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function gtag() {
+    window.dataLayer.push(arguments);
+  };
+  window.gtag("js", new Date());
+  window.gtag("config", id, { anonymize_ip: true });
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
+  document.head.append(script);
+}
+
+function initConsent() {
+  const id = gaId();
+  const consent = localStorage.getItem("curanews_cookie_consent");
+  if (!id) return;
+  if (consent === "all") return loadAnalytics(id);
+  if (consent) return;
+  els.cookieBanner.hidden = false;
+  els.acceptCookiesBtn.addEventListener("click", () => {
+    localStorage.setItem("curanews_cookie_consent", "all");
+    els.cookieBanner.hidden = true;
+    loadAnalytics(id);
+  });
+  els.rejectCookiesBtn.addEventListener("click", () => {
+    localStorage.setItem("curanews_cookie_consent", "necessary");
+    els.cookieBanner.hidden = true;
   });
 }
 
+// ------------------------------------------------------------------- init
+
+function openAccount(tab = "login") {
+  updateAuthUI();
+  if (!state.user) switchAuthTab(tab);
+  openModal(els.profileModal);
+}
 
 function tickClock() {
-  els.liveClock.textContent = new Date().toLocaleTimeString("tr-TR", {
-    hour: "2-digit",
-    minute: "2-digit",
+  els.liveClock.textContent = new Date().toLocaleDateString("tr-TR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
   });
 }
 
-// ========================================================
-// ÇEREZ & REKLAM İLKELERİ MODALİ (DAY 23)
-// ========================================================
-function openPolicyModal() {
-  if (els.policyModal) {
-    els.policyModal.hidden = false;
-    document.body.style.overflow = "hidden";
-  }
-}
+function bindEvents() {
+  els.userProfileBtn.addEventListener("click", () => openAccount("login"));
+  els.commentLoginBtn.addEventListener("click", () => openAccount("login"));
+  els.tabLogin.addEventListener("click", () => switchAuthTab("login"));
+  els.tabRegister.addEventListener("click", () => switchAuthTab("register"));
+  els.authLoginForm.addEventListener("submit", submitLogin);
+  els.authRegisterForm.addEventListener("submit", submitRegister);
+  els.profileLogoutBtn.addEventListener("click", logout);
+  els.saveInterestsBtn.addEventListener("click", saveInterests);
+  els.commentForm.addEventListener("submit", submitComment);
+  els.editorForm.addEventListener("submit", submitEditor);
+  els.openEditorBtn.addEventListener("click", () => openModal(els.editorModal));
+  els.editorCancelBtn.addEventListener("click", () => closeModal(els.editorModal));
 
-function closePolicyModal() {
-  if (els.policyModal) {
-    els.policyModal.hidden = true;
-    document.body.style.overflow = "";
-  }
-}
+  wireModal(els.articleModal, els.modalCloseBtn, () => closeArticle());
+  wireModal(els.editorModal, els.editorCloseBtn);
+  wireModal(els.profileModal, els.profileCloseBtn);
+  wireModal(els.policyModal, els.policyCloseBtn);
+  els.footerPolicyLink.addEventListener("click", () => openModal(els.policyModal));
+  els.openPolicyBtn.addEventListener("click", () => openModal(els.policyModal));
 
-function initCookieConsent() {
-  const consent = localStorage.getItem("curanews_cookie_consent");
-
-  const hideBanner = () => {
-    if (els.cookieConsentBanner) {
-      els.cookieConsentBanner.hidden = true;
-      els.cookieConsentBanner.style.display = "none";
-    }
-  };
-
-  const showBanner = () => {
-    if (els.cookieConsentBanner) {
-      els.cookieConsentBanner.hidden = false;
-      els.cookieConsentBanner.style.display = "flex";
-    }
-  };
-
-  if (consent) {
-    hideBanner();
-  } else {
-    showBanner();
-  }
-
-  if (els.acceptCookiesBtn) {
-    els.acceptCookiesBtn.addEventListener("click", () => {
-      localStorage.setItem("curanews_cookie_consent", "all");
-      hideBanner();
-      trackEvent("cookie_consent_granted", { level: "all" });
-      showStatus("Tüm çerez tercihleri kabul edildi ve kaydedildi.");
-      setTimeout(() => showStatus(""), 3000);
-    });
-  }
-
-  if (els.rejectCookiesBtn) {
-    els.rejectCookiesBtn.addEventListener("click", () => {
-      localStorage.setItem("curanews_cookie_consent", "necessary");
-      hideBanner();
-      trackEvent("cookie_consent_granted", { level: "necessary" });
-      showStatus("Yalnızca temel çerezler aktif edildi.");
-      setTimeout(() => showStatus(""), 3000);
-    });
-  }
-
-  if (els.openPolicyBtn) {
-    els.openPolicyBtn.addEventListener("click", openPolicyModal);
-  }
-
-  if (els.footerPolicyLink) {
-    els.footerPolicyLink.addEventListener("click", openPolicyModal);
-  }
-
-  if (els.policyCloseBtn) {
-    els.policyCloseBtn.addEventListener("click", closePolicyModal);
-  }
-
-  if (els.policyDismissBtn) {
-    els.policyDismissBtn.addEventListener("click", () => {
-      localStorage.setItem("curanews_cookie_consent", "all");
-      hideBanner();
-      closePolicyModal();
-    });
-  }
-}
-
-// ========================================================
-// INITIALIZATION
-// ========================================================
-async function init() {
-  initAccessibility();
-  initCookieConsent();
-  setupCategoryNavbar();
-  await initAuth();
+  window.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (!els.articleModal.hidden) closeArticle();
+    [els.editorModal, els.profileModal, els.policyModal].forEach(closeModal);
+  });
+  window.addEventListener("popstate", () => {
+    const id = new URL(window.location.href).searchParams.get("haber");
+    if (id) openArticleById(id);
+    else closeArticle({ pop: true });
+  });
 
   els.refreshBtn.addEventListener("click", () => loadFeed());
-  els.searchInput.addEventListener("input", () => renderFeed());
-  els.topicSelect.addEventListener("change", () => renderFeed());
-
-  els.viewAll.addEventListener("click", () => {
-    feedView = "all";
-    els.viewAll.classList.add("is-active");
-    els.viewBookmarks.classList.remove("is-active");
-    els.viewRead.classList.remove("is-active");
-    renderFeed();
+  let searchTimer = null;
+  els.searchInput.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(renderFeed, 150);
   });
-
-  els.viewBookmarks.addEventListener("click", () => {
-    feedView = "bookmarks";
-    els.viewBookmarks.classList.add("is-active");
-    els.viewAll.classList.remove("is-active");
-    els.viewRead.classList.remove("is-active");
-    renderFeed();
-  });
-
-  els.viewRead.addEventListener("click", () => {
-    feedView = "read";
-    els.viewRead.classList.add("is-active");
-    els.viewAll.classList.remove("is-active");
-    els.viewBookmarks.classList.remove("is-active");
-    renderFeed();
-  });
-
-  document.querySelectorAll(".persona").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      els.userSelect.value = btn.dataset.user;
-      currentUser.external_key = btn.dataset.user;
-      syncPersonas();
-      loadFeed();
+  els.viewAll.addEventListener("click", () => setView("all"));
+  els.viewBookmarks.addEventListener("click", () => setView("bookmarks"));
+  els.viewRead.addEventListener("click", () => setView("read"));
+  els.categoryScroll.querySelectorAll(".cat-pill").forEach((pill) => {
+    pill.addEventListener("click", (event) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey) return;
+      event.preventDefault();
+      setCategory(pill.dataset.category || "");
     });
   });
+}
 
+async function init() {
+  initPreferences();
+  bindEvents();
   tickClock();
-  setInterval(tickClock, 1000);
+  initConsent();
+  setupInfiniteScroll();
 
-  syncPersonas();
-  loadFeed();
+  const params = new URL(window.location.href).searchParams;
+  const initialCategory = params.get("kategori") || params.get("category") || "";
+  if (CATEGORY_NAMES[initialCategory]) setCategory(initialCategory, { push: false });
+
+  await initAuth();
+  await Promise.all([loadBookmarks(), loadFeed({ quiet: true })]);
+
+  const deepLink = params.get("haber");
+  if (deepLink) openArticleById(deepLink);
 }
 
 init();

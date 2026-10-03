@@ -10,8 +10,12 @@ import base64
 import hashlib
 import hmac
 import json
+import logging
 import os
+import re
+import secrets
 import time
+from functools import lru_cache
 from typing import Any
 from uuid import UUID
 
@@ -23,7 +27,28 @@ from curanews.api.deps import get_db
 from curanews.config import get_settings
 from curanews.db.models import User
 
+logger = logging.getLogger(__name__)
+
 _bearer_security = HTTPBearer(auto_error=False)
+
+GUEST_KEY_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{2,63}")
+MIN_JWT_SECRET_LENGTH = 32
+_DEV_JWT_SECRET = "curanews-dev-only-jwt-secret-not-for-production"
+
+
+@lru_cache(maxsize=1)
+def _jwt_secret() -> bytes:
+    configured = get_settings().jwt_secret.strip()
+    if len(configured) >= MIN_JWT_SECRET_LENGTH:
+        return configured.encode("utf-8")
+    if get_settings().is_prod:
+        logger.warning(
+            "JWT_SECRET missing or shorter than %s chars; using an ephemeral key "
+            "(sessions reset on restart)",
+            MIN_JWT_SECRET_LENGTH,
+        )
+        return secrets.token_bytes(48)
+    return _DEV_JWT_SECRET.encode("utf-8")
 
 
 def hash_password(password: str) -> str:
@@ -70,8 +95,7 @@ def create_access_token(
     expires_in_seconds: int = 86400 * 7,  # 7 days
 ) -> str:
     """Create signed HS256 JWT access token."""
-    settings = get_settings()
-    secret = (settings.pii_hash_salt or "curanews-secret-key-2026").encode("utf-8")
+    secret = _jwt_secret()
 
     now = int(time.time())
     header = {"alg": "HS256", "typ": "JWT"}
@@ -101,8 +125,11 @@ def decode_access_token(token: str) -> dict[str, Any] | None:
             return None
         header_b64, payload_b64, sig_b64 = parts
 
-        settings = get_settings()
-        secret = (settings.pii_hash_salt or "curanews-secret-key-2026").encode("utf-8")
+        header = json.loads(_b64decode(header_b64).decode("utf-8"))
+        if header.get("alg") != "HS256":
+            return None
+
+        secret = _jwt_secret()
         signing_input = f"{header_b64}.{payload_b64}".encode()
 
         expected_sig = hmac.new(secret, signing_input, hashlib.sha256).digest()
@@ -149,3 +176,47 @@ def get_current_user_required(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return current_user
+
+
+def require_editor(current_user: User = Depends(get_current_user_required)) -> User:
+    """Role is read from the database row, never from token claims."""
+    if current_user.role != "editor":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu işlem yalnızca editör hesapları içindir.",
+        )
+    return current_user
+
+
+def resolve_reader(
+    session: Session,
+    *,
+    external_key: str | None,
+    current_user: User | None,
+    create: bool,
+) -> User | None:
+    """Resolve whose feed/reads/bookmarks a request targets.
+
+    Logged-in users always act as themselves. Anonymous visitors act through an
+    opaque browser key; keys belonging to password-protected accounts are refused.
+    """
+    if current_user is not None:
+        return current_user
+    key = (external_key or "").strip()
+    if not GUEST_KEY_PATTERN.fullmatch(key):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Geçersiz okur anahtarı.",
+        )
+    user = session.query(User).filter(User.external_key == key).first()
+    if user is not None and (user.hashed_password or user.role == "editor"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Bu hesap için giriş yapmanız gerekmektedir.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if user is None and create:
+        user = User(external_key=key, role="reader")
+        session.add(user)
+        session.flush()
+    return user

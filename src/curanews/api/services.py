@@ -3,21 +3,27 @@
 from __future__ import annotations
 
 import base64
+import html
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from curanews.api.schemas import ArticleItem
+from curanews.api.urls import article_path, safe_http_url, video_embed_url
 from curanews.db.entity_repository import EntityRepository
 from curanews.db.models import Article, Source
 from curanews.nlp.categorizer import (
+    CATEGORIZER_VERSION,
     calculate_read_time,
     categorize_text,
+    category_aliases,
     detect_breaking_news,
     get_category_display_name,
     normalize_category_name,
 )
+from curanews.scrapers.adapters.rss_catalog import DEFAULT_RSS_FEEDS
+from curanews.timeutil import correct_future_timestamp
 
 
 def display_source_name(article: Article, source: Source | None) -> str:
@@ -64,6 +70,61 @@ CATEGORY_FALLBACK_IMAGES: dict[str, str] = {
     "dunya": "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=800&auto=format&fit=crop",
     "politika": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&auto=format&fit=crop",
 }
+
+
+DEFAULT_FALLBACK_IMAGE = CATEGORY_FALLBACK_IMAGES["gundem"]
+
+
+_FEED_CATEGORIES = {feed.key: feed.category for feed in DEFAULT_RSS_FEEDS}
+
+
+def _decoded(text: str | None) -> str | None:
+    """Rows ingested before entity decoding still contain ``&#039;`` and friends."""
+    return html.unescape(text) if text and "&" in text else text
+
+
+def _category_prior(article: Article) -> str | None:
+    """The feed's desk; stored values on old rows are earlier classifier output, not a prior."""
+    meta = article.raw_metadata or {}
+    feed_key = meta.get("feed_key") or str(meta.get("domain_source") or "").split(":", 1)[0]
+    return meta.get("feed_category") or _FEED_CATEGORIES.get(feed_key) or article.category
+
+
+def article_category(article: Article) -> str:
+    """Stored category; rows from older classifier versions are re-scored on the fly."""
+    meta = article.raw_metadata or {}
+    if meta.get("is_editorial") or meta.get("categorizer_version") == CATEGORIZER_VERSION:
+        return normalize_category_name(article.category) or "gundem"
+    slug, _ = categorize_text(
+        article.title,
+        summary=article.summary or "",
+        body=article.body or "",
+        default_category=_category_prior(article),
+    )
+    return slug
+
+
+def recategorize_articles(session: Session, *, batch_size: int = 500) -> int:
+    """Persist the current classifier's category so listings agree with card badges."""
+    updated = 0
+    last_id = None
+    while True:
+        stmt = select(Article).order_by(Article.id).limit(batch_size)
+        if last_id is not None:
+            stmt = stmt.where(Article.id > last_id)
+        rows = session.scalars(stmt).all()
+        if not rows:
+            return updated
+        for article in rows:
+            meta = dict(article.raw_metadata or {})
+            if meta.get("is_editorial") or meta.get("categorizer_version") == CATEGORIZER_VERSION:
+                continue
+            article.category = article_category(article)
+            meta["categorizer_version"] = CATEGORIZER_VERSION
+            article.raw_metadata = meta
+            updated += 1
+        session.commit()
+        last_id = rows[-1].id
 
 
 def _b64_svg(svg_xml: str) -> str:
@@ -215,30 +276,16 @@ def article_to_item(
     entities = EntityRepository(session).list_for_article(article.id)
     source_name = display_source_name(article, source)
     meta = article.raw_metadata or {}
+    is_editorial = bool(meta.get("is_editorial"))
 
-    # Category normalization or AI categorization
-    cat_slug = normalize_category_name(article.category)
-    if not cat_slug:
-        cat_slug, _ = categorize_text(
-            article.title,
-            summary=article.summary or "",
-            body=article.body or "",
-            default_category=article.category,
-        )
+    cat_slug = article_category(article)
     category_display = get_category_display_name(cat_slug)
 
-    # Image URL from metadata or enclosures with editorial category fallback
-    raw_img = meta.get("image_url")
-    if raw_img and str(raw_img).strip():
-        image_url = str(raw_img).strip()
-    else:
-        image_url = CATEGORY_FALLBACK_IMAGES.get(
-            cat_slug,
-            "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop",
-        )
-
-    video_url = meta.get("video_url")
-    is_editorial = bool(meta.get("is_editorial"))
+    image_url = safe_http_url(meta.get("image_url")) or CATEGORY_FALLBACK_IMAGES.get(
+        cat_slug, DEFAULT_FALLBACK_IMAGE
+    )
+    video_url = video_embed_url(meta.get("video_url"))
+    page_path = article_path(article.id, article.title)
     author_title = meta.get("author_title")
     author_avatar = meta.get("author_avatar")
 
@@ -250,10 +297,11 @@ def article_to_item(
 
     return ArticleItem(
         id=article.id,
-        title=article.title,
-        summary=article.summary,
-        body=article.body or article.summary,
+        title=_decoded(article.title),
+        summary=_decoded(article.summary),
+        body=_decoded(article.body or article.summary),
         url=article.url,
+        page_path=page_path,
         source_name=source_name,
         source_logo=get_source_logo_svg(source_name),
         image_url=image_url,
@@ -266,8 +314,7 @@ def article_to_item(
         author_display=article.author_display or meta.get("author_name"),
         author_title=author_title,
         author_avatar=author_avatar,
-        published_at=article.published_at,
-        scraped_at=article.scraped_at,
+        published_at=correct_future_timestamp(article.published_at),
         score=score,
         read=read,
         read_at=read_at,
@@ -287,22 +334,21 @@ def list_articles(
     q: str | None = None,
 ) -> tuple[list[Article], int]:
     stmt = select(Article)
-    count_base = select(Article)
     if source:
         stmt = stmt.join(Source).where(Source.name == source)
-        count_base = count_base.join(Source).where(Source.name == source)
     if category:
-        stmt = stmt.where(Article.category == category)
-        count_base = count_base.where(Article.category == category)
+        stmt = stmt.where(Article.category.in_(category_aliases(category)))
     if q:
-        pattern = f"%{q}%"
-        stmt = stmt.where(Article.title.ilike(pattern))
-        count_base = count_base.where(Article.title.ilike(pattern))
+        stmt = stmt.where(Article.title.ilike(f"%{q}%"))
 
-    ordered_stmt = stmt.order_by(Article.scraped_at.desc()).offset(offset).limit(limit)
+    ordered_stmt = (
+        stmt.order_by(Article.published_at.desc().nulls_last(), Article.scraped_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
     rows = list(session.scalars(ordered_stmt).all())
-    total = len(list(session.scalars(count_base).all()))
-    return rows, total
+    total = session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    return rows, int(total)
 
 
 # Backward compatibility alias

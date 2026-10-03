@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -50,7 +50,7 @@ class UserRepository:
         row = UserRead(
             user_id=user_id,
             article_id=article_id,
-            read_at=read_at or datetime.now(timezone.utc),
+            read_at=read_at or datetime.now(UTC),
             dwell_ms=dwell_ms,
         )
         self._session.add(row)
@@ -75,6 +75,20 @@ class UserRepository:
             .where(UserRead.user_id == user_id)
         )
         return {row for row in self._session.scalars(stmt).all()}
+
+    def article_entity_sets(self, article_ids: list[UUID]) -> dict[UUID, set[str]]:
+        """Batch variant of :meth:`article_entity_set` (one query for all candidates)."""
+        result: dict[UUID, set[str]] = {aid: set() for aid in article_ids}
+        if not article_ids:
+            return result
+        stmt = (
+            select(ArticleEntity.article_id, Entity.normalized)
+            .join(Entity, ArticleEntity.entity_id == Entity.id)
+            .where(ArticleEntity.article_id.in_(article_ids))
+        )
+        for article_id, normalized in self._session.execute(stmt):
+            result[article_id].add(normalized)
+        return result
 
     def article_entity_set(self, article_id: UUID) -> set[str]:
         stmt = (

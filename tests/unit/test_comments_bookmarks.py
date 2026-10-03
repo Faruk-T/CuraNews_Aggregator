@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -11,6 +12,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
+from tests.support.auth import bearer, create_account
 
 from curanews.api.app import create_app
 from curanews.api.deps import get_db
@@ -33,6 +35,14 @@ def session() -> Generator[Session, None, None]:
         yield sess
     finally:
         sess.close()
+
+
+@pytest.fixture(autouse=True)
+def _no_redis(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "curanews.api.routers.comments.get_redis_client",
+        lambda: SimpleNamespace(available=False),
+    )
 
 
 @pytest.fixture
@@ -104,13 +114,39 @@ def test_bookmark_toggle_and_list(client: TestClient, session: Session) -> None:
     assert res_off.json()["is_bookmarked"] is False
 
 
+def test_bookmarks_refuse_password_account_key(client: TestClient, session: Session) -> None:
+    article = _seed_article(session)
+    create_account(session, key="user-victim01")
+    res = client.post(
+        "/bookmarks", json={"article_id": str(article.id), "user_id": "user-victim01"}
+    )
+    assert res.status_code == 401
+    assert client.get("/bookmarks?user_id=user-victim01").status_code == 401
+
+
+def test_bookmark_unknown_article_is_404(client: TestClient) -> None:
+    res = client.post("/bookmarks", json={"article_id": str(uuid4()), "user_id": "guest-abc123"})
+    assert res.status_code == 404
+
+
+def test_anonymous_comment_is_rejected(client: TestClient, session: Session) -> None:
+    article = _seed_article(session)
+    res = client.post(
+        f"/articles/{article.id}/comments",
+        json={"content": "Anonim yorum", "author_name": "Sahte Editör"},
+    )
+    assert res.status_code == 401
+
+
 def test_comments_create_and_like(client: TestClient, session: Session) -> None:
     article = _seed_article(session)
+    user = create_account(session, full_name="Ayşe Kaya")
+    headers = bearer(user)
 
-    # 1. Post a comment
     post_res = client.post(
         f"/articles/{article.id}/comments",
-        json={"content": "Çok bilgilendirici bir haber, tebrikler!", "author_name": "Ayşe Kaya"},
+        json={"content": "Çok bilgilendirici bir haber, tebrikler!", "author_name": "Başkası"},
+        headers=headers,
     )
     assert post_res.status_code == 200
     comment = post_res.json()
@@ -119,14 +155,31 @@ def test_comments_create_and_like(client: TestClient, session: Session) -> None:
     assert comment["likes"] == 0
 
     comment_id = comment["id"]
+    assert client.post(f"/comments/{comment_id}/like").status_code == 401
 
-    # 2. Like the comment
-    like_res = client.post(f"/comments/{comment_id}/like")
+    like_res = client.post(f"/comments/{comment_id}/like", headers=headers)
     assert like_res.status_code == 200
     assert like_res.json()["likes"] == 1
 
-    # 3. List comments
+    repeat = client.post(f"/comments/{comment_id}/like", headers=headers)
+    assert repeat.json()["likes"] == 1
+
     get_res = client.get(f"/articles/{article.id}/comments")
     assert get_res.status_code == 200
     assert get_res.json()["total"] == 1
     assert get_res.json()["items"][0]["likes"] == 1
+
+
+def test_comment_rate_limit(client: TestClient, session: Session) -> None:
+    article = _seed_article(session)
+    headers = bearer(create_account(session))
+    codes = [
+        client.post(
+            f"/articles/{article.id}/comments",
+            json={"content": f"Yorum numarası {i}"},
+            headers=headers,
+        ).status_code
+        for i in range(7)
+    ]
+    assert codes[:5] == [200] * 5
+    assert codes[-1] == 429

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from fastapi.testclient import TestClient
@@ -16,6 +16,7 @@ from curanews.db.user_repository import UserRepository
 from curanews.domain.models import RawArticleDraft
 from curanews.ingestion.pipeline import IngestionPipeline
 from curanews.scrapers.adapters.base import SourceAdapter
+from tests.support.auth import bearer, create_account
 from tests.support.db import seed_article, seed_demo_users, seed_source
 from tests.support.fakes import FakeRedisClient
 
@@ -37,7 +38,7 @@ def test_ingest_then_list_articles_via_api(client: TestClient, session: Session)
             title="Ingested via pipeline",
             url="https://example.com/news/ingested-1",
             content="Body after cleaning path.",
-            published_date=datetime(2026, 8, 19, tzinfo=timezone.utc),
+            published_date=datetime(2026, 8, 19, tzinfo=UTC),
             source="integration_source",
             category="tech",
         )
@@ -139,21 +140,38 @@ def test_redis_bypass_when_unavailable(
     assert response.headers.get("X-Cache") == "bypass"
 
 
-def test_unknown_user_returns_404(client: TestClient, session: Session) -> None:
-    seed_source(session)
+def test_unknown_guest_gets_shared_anonymous_feed(client: TestClient, session: Session) -> None:
+    source = seed_source(session)
+    seed_article(
+        session,
+        source,
+        title="Shared story",
+        url_path="shared",
+        url_hash="h" * 64,
+        category="tech",
+        topics=["tech"],
+    )
     session.commit()
-    response = client.get("/feed", params={"user_id": "missing-user", "limit": 5})
-    assert response.status_code == 404
+    first = client.get("/feed", params={"user_id": "guest-aaaa1111", "limit": 5})
+    assert first.status_code == 200
+    assert [i["title"] for i in first.json()["items"]] == ["Shared story"]
+    second = client.get("/feed", params={"user_id": "guest-bbbb2222", "limit": 5})
+    assert second.json()["cache"] == "hit"
+    assert client.get("/feed", params={"limit": 5}).status_code == 200
 
 
-def test_demo_editor_feed_auto_seeds(client: TestClient, session: Session) -> None:
-    seed_source(session)
-    session.commit()
-    response = client.get("/feed", params={"user_id": "demo-editor", "limit": 5})
-    assert response.status_code == 200
-    data = response.json()
-    assert data["user_id"] == "demo-editor"
+def test_feed_rejects_malformed_key(client: TestClient) -> None:
+    response = client.get("/feed", params={"user_id": "../../etc", "limit": 5})
+    assert response.status_code == 400
 
+
+def test_password_account_key_requires_token(client: TestClient, session: Session) -> None:
+    editor = create_account(session, key="demo-editor", email="ed@example.com", role="editor")
+    anonymous = client.get("/feed", params={"user_id": "demo-editor", "limit": 5})
+    assert anonymous.status_code == 401
+    signed_in = client.get("/feed", params={"limit": 5}, headers=bearer(editor))
+    assert signed_in.status_code == 200
+    assert signed_in.json()["user_id"] == "demo-editor"
 
 
 def test_topics_endpoint_after_seed(client: TestClient, session: Session) -> None:

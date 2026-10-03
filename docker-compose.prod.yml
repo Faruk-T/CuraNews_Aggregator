@@ -50,9 +50,14 @@ services:
       FEED_CACHE_TTL_SECONDS: 180
       READ_INBOX_GRACE_SECONDS: 1200
       CURANEWS_BOOTSTRAP: "1"
-      PII_HASH_SALT: ${PII_HASH_SALT:-curanews-prod-pii-salt-2026}
-      ADSENSE_PUB_ID: ${ADSENSE_PUB_ID:-pub-8573920194827104}
-      GA_MEASUREMENT_ID: ${GA_MEASUREMENT_ID:-G-CURANEWS2026}
+      PII_HASH_SALT: ${PII_HASH_SALT:?set PII_HASH_SALT in .env}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ random chars) in .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+      EDITOR_EMAIL: ${EDITOR_EMAIL:-faruk@curanews.com}
+      EDITOR_PASSWORD: ${EDITOR_PASSWORD:-}
+      ADSENSE_PUB_ID: ${ADSENSE_PUB_ID:-}
+      GA_MEASUREMENT_ID: ${GA_MEASUREMENT_ID:-}
+      GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
       SCRAPE_ALLOWLIST_HOSTS: "example.com,gnews.io,localhost,127.0.0.1,feeds.bbci.co.uk,www.theguardian.com,feeds.npr.org,www.aljazeera.com,rss.dw.com,www.aa.com.tr,www.trthaber.com,www.ahaber.com.tr,www.ntv.com.tr,www.cnnturk.com,www.hurriyet.com.tr,www.milliyet.com.tr,www.haberturk.com"
       SCRAPE_USER_AGENT: "CuraNewsBot/1.0 (+https://${DOMAIN_NAME:-curanews.com})"
     depends_on:

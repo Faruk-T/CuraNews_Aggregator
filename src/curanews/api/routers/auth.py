@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,10 +17,14 @@ from curanews.api.auth import (
     verify_password,
 )
 from curanews.api.deps import get_db
+from curanews.api.ratelimit import client_ip, enforce, login_limiter, register_limiter
 from curanews.api.schemas import AuthResponse, UserLogin, UserProfile, UserRegister
+from curanews.api.urls import safe_http_url
 from curanews.db.models import User, UserBookmark, UserRead
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+EMAIL_PATTERN = re.compile(r"[^@\s]{1,64}@[^@\s]{1,190}\.[a-z]{2,24}")
 
 
 def _user_to_profile(session: Session, user: User) -> UserProfile:
@@ -42,22 +47,29 @@ def _user_to_profile(session: Session, user: User) -> UserProfile:
 
 
 @router.post("/register", response_model=AuthResponse)
-def register(req: UserRegister, session: Session = Depends(get_db)) -> AuthResponse:
-    existing = session.query(User).filter(User.email == req.email.lower().strip()).first()
+def register(
+    req: UserRegister, request: Request, session: Session = Depends(get_db)
+) -> AuthResponse:
+    enforce(register_limiter, client_ip(request))
+    email = req.email.lower().strip()
+    if not EMAIL_PATTERN.fullmatch(email):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Geçerli bir e-posta adresi girin.",
+        )
+    existing = session.query(User).filter(User.email == email).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Bu e-posta adresi ile zaten bir hesap mevcut.",
         )
 
-    external_key = f"user-{uuid.uuid4().hex[:8]}"
     user = User(
-        external_key=external_key,
-        email=req.email.lower().strip(),
+        external_key=f"user-{uuid.uuid4().hex[:12]}",
+        email=email,
         hashed_password=hash_password(req.password),
         full_name=req.full_name.strip(),
-        avatar_url=req.avatar_url,
-        role=req.role,
+        role="reader",
         preferences=req.preferences,
     )
     session.add(user)
@@ -69,26 +81,14 @@ def register(req: UserRegister, session: Session = Depends(get_db)) -> AuthRespo
 
 
 @router.post("/login", response_model=AuthResponse)
-def login(req: UserLogin, session: Session = Depends(get_db)) -> AuthResponse:
-    email_clean = req.email.lower().strip()
-    ensure_demo_accounts(session)
+def login(req: UserLogin, request: Request, session: Session = Depends(get_db)) -> AuthResponse:
+    email = req.email.lower().strip()
+    enforce(login_limiter, f"{client_ip(request)}|{email}")
+    user = session.query(User).filter(User.email == email).first()
 
-    if email_clean in ("faruk@curanews.com", "editor@curanews.com"):
-        user = session.query(User).filter(
-            (User.email == "faruk@curanews.com")
-            | (User.email == "editor@curanews.com")
-            | (User.external_key == "demo-editor")
-        ).first()
-    else:
-        user = session.query(User).filter(User.email == email_clean).first()
-
-    valid_pw = False
-    if user:
-        if user.external_key == "demo-editor" and req.password in ("editor123", "faruk123"):
-            valid_pw = True
-        elif user.hashed_password:
-            valid_pw = verify_password(req.password, user.hashed_password)
-
+    valid_pw = bool(
+        user and user.hashed_password and verify_password(req.password, user.hashed_password)
+    )
     if not valid_pw:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -114,80 +114,14 @@ def update_profile(
     session: Session = Depends(get_db),
 ) -> UserProfile:
     if "full_name" in req and req["full_name"]:
-        current_user.full_name = str(req["full_name"]).strip()
+        current_user.full_name = str(req["full_name"]).strip()[:120]
     if "avatar_url" in req:
-        current_user.avatar_url = str(req["avatar_url"]).strip() if req["avatar_url"] else None
+        current_user.avatar_url = safe_http_url(req["avatar_url"])
     if "bio" in req:
-        current_user.bio = str(req["bio"]).strip() if req["bio"] else None
+        current_user.bio = str(req["bio"]).strip()[:500] if req["bio"] else None
     if "preferences" in req and isinstance(req["preferences"], dict):
         current_user.preferences = req["preferences"]
 
     session.commit()
     session.refresh(current_user)
     return _user_to_profile(session, current_user)
-
-
-def ensure_demo_accounts(session: Session) -> None:
-    """Pre-seed standard demo accounts for company presentation and faculty defense."""
-    demo_editor = session.query(User).filter(
-        (User.external_key == "demo-editor")
-        | (User.email == "editor@curanews.com")
-        | (User.email == "faruk@curanews.com")
-    ).first()
-    if not demo_editor:
-        demo_editor = User(
-            external_key="demo-editor",
-            email="faruk@curanews.com",
-            hashed_password=hash_password("editor123"),
-            full_name="Faruk Tazeoğlu (Baş Editör & Kurucu)",
-            avatar_url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-            bio="CuraNews Kurucusu, Baş Editör ve Sistem Mimarı.",
-            role="editor",
-            preferences={"categories": ["gundem", "ekonomi", "teknoloji"]},
-        )
-        session.add(demo_editor)
-    else:
-        demo_editor.full_name = "Faruk Tazeoğlu (Baş Editör & Kurucu)"
-        demo_editor.bio = "CuraNews Kurucusu, Baş Editör ve Sistem Mimarı."
-        demo_editor.role = "editor"
-        if not demo_editor.email:
-            demo_editor.email = "faruk@curanews.com"
-
-    demo_reader = session.query(User).filter(User.email == "okur@curanews.com").first()
-    if not demo_reader:
-        demo_reader = User(
-            external_key="demo-okur",
-            email="okur@curanews.com",
-            hashed_password=hash_password("okur123"),
-            full_name="Mehmet Özkan (Kamu Görevlisi)",
-            avatar_url="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-            bio="Gündem ve ekonomi haberlerini düzenli takip eden kıdemli memur.",
-            role="reader",
-            preferences={"categories": ["gundem", "ekonomi"]},
-        )
-        session.add(demo_reader)
-
-    user_a = session.query(User).filter(User.external_key == "demo-user-a").first()
-    if not user_a:
-        session.add(
-            User(
-                external_key="demo-user-a",
-                full_name="Ada (Ekonomi · AI)",
-                role="reader",
-                preferences={"categories": ["ekonomi", "teknoloji"]},
-            )
-        )
-
-    user_b = session.query(User).filter(User.external_key == "demo-user-b").first()
-    if not user_b:
-        session.add(
-            User(
-                external_key="demo-user-b",
-                full_name="Deniz (Spor · İklim)",
-                role="reader",
-                preferences={"categories": ["spor", "gundem"]},
-            )
-        )
-
-    session.commit()
-

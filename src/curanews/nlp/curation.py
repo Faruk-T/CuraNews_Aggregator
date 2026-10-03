@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Sequence
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from curanews.db.models import Article
 from curanews.db.user_repository import UserRepository
+from curanews.timeutil import correct_future_timestamp
 
 # Default weights from IMPLEMENTATION_PLAN §7.5
 W_FRESHNESS = 0.30
@@ -50,8 +51,8 @@ def freshness_score(
     """Exponential decay by age in hours: e^{-λ Δt}."""
     if published_at is None:
         return 0.3
-    current = now or datetime.now(timezone.utc)
-    ts = published_at if published_at.tzinfo else published_at.replace(tzinfo=timezone.utc)
+    current = now or datetime.now(UTC)
+    ts = correct_future_timestamp(published_at, now=current)
     delta_hours = max(0.0, (current - ts).total_seconds() / 3600.0)
     return math.exp(-lambda_ * delta_hours)
 
@@ -101,18 +102,18 @@ class CurationEngine:
         user_profile: set[str],
         recent_source_ids: Sequence[UUID] = (),
         now: datetime | None = None,
+        article_entities: set[str] | None = None,
     ) -> ScoredArticle:
-        article_ents = self._users.article_entity_set(article.id)  # type: ignore[union-attr]
+        article_ents = (
+            article_entities
+            if article_entities is not None
+            else self._users.article_entity_set(article.id)  # type: ignore[union-attr]
+        )
         fresh = freshness_score(article.published_at, now=now)
         interest = jaccard(user_profile, article_ents)
         diversity = diversity_score(article.source_id, recent_source_ids)
         penalty = penalty_score(article, len(article_ents))
-        total = (
-            self.w_t * fresh
-            + self.w_i * interest
-            + self.w_d * diversity
-            - self.w_p * penalty
-        )
+        total = self.w_t * fresh + self.w_i * interest + self.w_d * diversity - self.w_p * penalty
         return ScoredArticle(
             article=article,
             score=total,
@@ -137,6 +138,7 @@ class CurationEngine:
         if hide_read:
             read_ids = self._users.read_article_ids(user_id)
             remaining = [article for article in remaining if article.id not in read_ids]
+        entity_sets = self._users.article_entity_sets([article.id for article in remaining])
         ranked: list[ScoredArticle] = []
         recent: list[UUID] = []
         # Greedy: pick highest score given diversity vs already picked
@@ -149,6 +151,7 @@ class CurationEngine:
                     user_profile=profile,
                     recent_source_ids=recent[-DIVERSITY_LOOKBACK:],
                     now=now,
+                    article_entities=entity_sets.get(article.id, set()),
                 )
                 if best is None or scored.score > best.score:
                     best = scored

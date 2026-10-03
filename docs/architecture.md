@@ -19,7 +19,9 @@ CuraNews Aggregator: collect → normalize → enrich → curate → serve.
 ```
 
 `docker compose up --build` starts **postgres**, **redis**, and **api**.  
-The API image runs migrations, optionally bootstraps RSS + demo users (`CURANEWS_BOOTSTRAP=1`), then serves `uvicorn curanews.api.app:app`.
+The API image runs migrations, syncs the editor account from `EDITOR_EMAIL` / `EDITOR_PASSWORD` (in production it also purges the `example.com` demo stories), re-runs the categorizer on rows tagged with an older `categorizer_version`, optionally bootstraps sources + RSS (`CURANEWS_BOOTSTRAP=1`), then serves `uvicorn curanews.api.app:app`.
+
+Public pages are server-rendered for search engines: `/` (home), `/haber/{id}/{slug}` (article, `NewsArticle` JSON-LD) and `/kategori/{slug}` (category, `CollectionPage` JSON-LD). Canonical, sitemap and RSS URLs come from `PUBLIC_BASE_URL`, or from the `X-Forwarded-Prefix` header when the app runs under a sub-path such as `/curanews`.
 
 ## Layers
 
