@@ -49,6 +49,9 @@ const els = {
   viewRead: document.getElementById("viewRead"),
   featuredSlot: document.getElementById("featuredSlot"),
   feedList: document.getElementById("feedList"),
+  infiniteScrollSentinel: document.getElementById("infiniteScrollSentinel"),
+  infiniteScrollSpinner: document.getElementById("infiniteScrollSpinner"),
+  infiniteScrollEnd: document.getElementById("infiniteScrollEnd"),
   skeleton: document.getElementById("skeleton"),
   emptyState: document.getElementById("emptyState"),
   status: document.getElementById("status"),
@@ -920,6 +923,18 @@ function renderSponsoredCard() {
   return li;
 }
 
+// ========================================================
+// INFINITE SCROLL & CHUNK RENDERING
+// ========================================================
+let currentFilteredItems = [];
+let renderedCardCount = 0;
+const INITIAL_CHUNK_SIZE = 8;
+const NEXT_CHUNK_SIZE = 8;
+let isFetchingMore = false;
+let hasMoreRemoteArticles = true;
+let remoteArticlesOffset = 48;
+let infiniteScrollObserver = null;
+
 function renderFeed() {
   let sourceItems = latestItems;
   if (feedView === "bookmarks") {
@@ -934,9 +949,15 @@ function renderFeed() {
     return itemMatchesFilters(item);
   });
 
+  currentFilteredItems = filtered;
+  renderedCardCount = 0;
   els.feedList.innerHTML = "";
   els.featuredSlot.hidden = true;
   els.emptyState.hidden = filtered.length > 0;
+
+  if (els.infiniteScrollSpinner) els.infiniteScrollSpinner.hidden = true;
+  if (els.infiniteScrollEnd) els.infiniteScrollEnd.hidden = true;
+  if (els.infiniteScrollSentinel) els.infiniteScrollSentinel.hidden = filtered.length === 0;
 
   if (feedView === "bookmarks") {
     els.emptyState.textContent = "Henüz favoriye eklediğiniz bir haber yok. Haber kartlarındaki ⭐ butonuna basarak kaydedebilirsiniz.";
@@ -953,13 +974,96 @@ function renderFeed() {
 
   renderFeatured(filtered[0]);
 
-  filtered.slice(1).forEach((item, index) => {
-    if (index === 4) {
+  // Render first batch of cards
+  renderNextChunk(INITIAL_CHUNK_SIZE);
+
+  // Setup intersection observer for seamless infinite scroll
+  setupInfiniteScrollObserver();
+}
+
+function renderNextChunk(chunkSize = NEXT_CHUNK_SIZE) {
+  const rest = currentFilteredItems.slice(1);
+  if (!rest.length || renderedCardCount >= rest.length) return;
+
+  const toRender = rest.slice(renderedCardCount, renderedCardCount + chunkSize);
+  toRender.forEach((item, idx) => {
+    const globalIndex = renderedCardCount + idx + 1;
+    if (globalIndex === 5) {
       els.feedList.appendChild(renderSponsoredCard());
     }
-    els.feedList.appendChild(renderCard(item, index + 1));
+    els.feedList.appendChild(renderCard(item, globalIndex));
   });
+
+  renderedCardCount += toRender.length;
+
+  if (renderedCardCount >= rest.length) {
+    if (feedView !== "all" || els.searchInput.value.trim() || !hasMoreRemoteArticles) {
+      if (els.infiniteScrollEnd) els.infiniteScrollEnd.hidden = false;
+    }
+  }
 }
+
+async function fetchMoreArticles() {
+  if (isFetchingMore || !hasMoreRemoteArticles) return;
+  if (feedView !== "all" || els.searchInput.value.trim()) return;
+
+  isFetchingMore = true;
+  if (els.infiniteScrollSpinner) els.infiniteScrollSpinner.hidden = false;
+  if (els.infiniteScrollEnd) els.infiniteScrollEnd.hidden = true;
+
+  try {
+    const catQuery = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : "";
+    const res = await api(`/articles?offset=${remoteArticlesOffset}&limit=20${catQuery}`);
+    const newArticles = (res.items || []).filter((item) => !latestItems.some((ex) => ex.id === item.id));
+
+    if (newArticles.length > 0) {
+      latestItems.push(...newArticles);
+      remoteArticlesOffset += 20;
+
+      // Re-filter and render
+      let sourceItems = latestItems;
+      currentFilteredItems = sourceItems.filter((item) => {
+        if (feedView === "all" && item.read && !stillOnMainFeed(item)) return false;
+        return itemMatchesFilters(item);
+      });
+
+      renderNextChunk(NEXT_CHUNK_SIZE);
+      els.feedCount.textContent = `${currentFilteredItems.length} haber görünür · ${readItems.length} okundu`;
+    } else {
+      hasMoreRemoteArticles = false;
+      if (els.infiniteScrollEnd) els.infiniteScrollEnd.hidden = false;
+    }
+  } catch (err) {
+    console.debug("[CuraNews] fetchMoreArticles error:", err);
+    hasMoreRemoteArticles = false;
+    if (els.infiniteScrollEnd) els.infiniteScrollEnd.hidden = false;
+  } finally {
+    isFetchingMore = false;
+    if (els.infiniteScrollSpinner) els.infiniteScrollSpinner.hidden = true;
+  }
+}
+
+function setupInfiniteScrollObserver() {
+  if (infiniteScrollObserver) {
+    infiniteScrollObserver.disconnect();
+  }
+  if (!els.infiniteScrollSentinel) return;
+
+  infiniteScrollObserver = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    if (entry && entry.isIntersecting) {
+      const rest = currentFilteredItems.slice(1);
+      if (renderedCardCount < rest.length) {
+        renderNextChunk(NEXT_CHUNK_SIZE);
+      } else if (hasMoreRemoteArticles && !isFetchingMore) {
+        fetchMoreArticles();
+      }
+    }
+  }, { rootMargin: "350px" });
+
+  infiniteScrollObserver.observe(els.infiniteScrollSentinel);
+}
+
 
 function stillOnMainFeed(item) {
   if (!item.read) return true;
@@ -988,6 +1092,8 @@ async function loadFeed(options = {}) {
   els.refreshBtn.disabled = true;
 
   try {
+    hasMoreRemoteArticles = true;
+    remoteArticlesOffset = 48;
     let userId = currentUser.external_key || "demo-editor";
     let data;
     try {

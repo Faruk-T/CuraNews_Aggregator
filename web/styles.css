@@ -1840,4 +1840,68 @@ body {
   border-radius: 16px;
 }
 
+/* ========================================================
+   INFINITE SCROLL COMPONENT
+   ======================================================== */
+.infinite-scroll-sentinel {
+  width: 100%;
+  padding: 1.5rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+}
+
+.infinite-scroll-spinner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.6rem 1.2rem;
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.spinner-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+  animation: spinnerPulse 1.2s infinite ease-in-out both;
+}
+
+.spinner-dot:nth-child(1) { animation-delay: -0.32s; }
+.spinner-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes spinnerPulse {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.3;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.spinner-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ink-secondary);
+  margin-left: 0.25rem;
+}
+
+.infinite-scroll-end {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  border: 1px dashed var(--border);
+  padding: 0.5rem 1.2rem;
+  border-radius: 9999px;
+}
+
+
 

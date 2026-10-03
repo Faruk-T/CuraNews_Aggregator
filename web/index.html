@@ -227,8 +227,22 @@
         <!-- Haber Listesi Grid -->
         <ol id="feedList" class="feed-grid"></ol>
 
+        <!-- Sonsuz Kaydırma (Infinite Scroll) Nöbetçisi -->
+        <div id="infiniteScrollSentinel" class="infinite-scroll-sentinel">
+          <div id="infiniteScrollSpinner" class="infinite-scroll-spinner" hidden>
+            <span class="spinner-dot"></span>
+            <span class="spinner-dot"></span>
+            <span class="spinner-dot"></span>
+            <span class="spinner-text">Daha fazla haber yükleniyor…</span>
+          </div>
+          <div id="infiniteScrollEnd" class="infinite-scroll-end" hidden>
+            <span>✨ Tüm güncel haberleri incelediniz</span>
+          </div>
+        </div>
+
         <!-- Yükleme İskeleti -->
         <div id="skeleton" class="skeleton-grid" hidden>
+
           <div class="skel skel-feature"></div>
           <div class="skel"></div>
           <div class="skel"></div>
