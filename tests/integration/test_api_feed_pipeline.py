@@ -146,6 +146,16 @@ def test_unknown_user_returns_404(client: TestClient, session: Session) -> None:
     assert response.status_code == 404
 
 
+def test_demo_editor_feed_auto_seeds(client: TestClient, session: Session) -> None:
+    seed_source(session)
+    session.commit()
+    response = client.get("/feed", params={"user_id": "demo-editor", "limit": 5})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["user_id"] == "demo-editor"
+
+
+
 def test_topics_endpoint_after_seed(client: TestClient, session: Session) -> None:
     source = seed_source(session)
     seed_article(

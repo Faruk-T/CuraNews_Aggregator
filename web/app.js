@@ -988,8 +988,19 @@ async function loadFeed(options = {}) {
   els.refreshBtn.disabled = true;
 
   try {
-    const userId = currentUser.external_key;
-    const data = await api(`/feed?user_id=${encodeURIComponent(userId)}&limit=48`);
+    let userId = currentUser.external_key || "demo-editor";
+    let data;
+    try {
+      data = await api(`/feed?user_id=${encodeURIComponent(userId)}&limit=48`);
+    } catch (feedErr) {
+      if (userId !== "demo-user-a") {
+        console.warn(`[CuraNews] Fallback to demo-user-a from ${userId}:`, feedErr);
+        data = await api(`/feed?user_id=demo-user-a&limit=48`);
+      } else {
+        throw feedErr;
+      }
+    }
+
     latestItems = data.items || [];
     readItems = data.read_items || latestItems.filter((i) => i.read);
     inboxGraceSeconds = Number(data.inbox_grace_seconds) || 20 * 60;
@@ -1011,11 +1022,15 @@ async function loadFeed(options = {}) {
     els.feedList.innerHTML = "";
     els.featuredSlot.hidden = true;
     showError(err.message || String(err));
+    setupBreakingTicker([
+      { title: "CuraNews Canlı Yayında: Truncgil Teknoloji Altyapısıyla Akıllı Haber Akışı Devrede", url: "#feedList", is_breaking: true }
+    ]);
   } finally {
     setLoading(false);
     els.refreshBtn.disabled = false;
   }
 }
+
 
 async function markRead(articleId, button) {
   clearError();
@@ -1046,11 +1061,15 @@ async function markRead(articleId, button) {
 }
 
 function syncPersonas() {
-  const current = els.userSelect.value;
+  const current = currentUser.external_key || (els.userSelect ? els.userSelect.value : "");
+  if (els.userSelect && current && Array.from(els.userSelect.options).some(o => o.value === current)) {
+    els.userSelect.value = current;
+  }
   document.querySelectorAll(".persona").forEach((btn) => {
     btn.classList.toggle("is-active", btn.dataset.user === current);
   });
 }
+
 
 function tickClock() {
   els.liveClock.textContent = new Date().toLocaleTimeString("tr-TR", {

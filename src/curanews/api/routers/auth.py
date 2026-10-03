@@ -167,4 +167,27 @@ def ensure_demo_accounts(session: Session) -> None:
         )
         session.add(demo_reader)
 
+    user_a = session.query(User).filter(User.external_key == "demo-user-a").first()
+    if not user_a:
+        session.add(
+            User(
+                external_key="demo-user-a",
+                full_name="Ada (Ekonomi · AI)",
+                role="reader",
+                preferences={"categories": ["ekonomi", "teknoloji"]},
+            )
+        )
+
+    user_b = session.query(User).filter(User.external_key == "demo-user-b").first()
+    if not user_b:
+        session.add(
+            User(
+                external_key="demo-user-b",
+                full_name="Deniz (Spor · İklim)",
+                role="reader",
+                preferences={"categories": ["spor", "gundem"]},
+            )
+        )
+
     session.commit()
+

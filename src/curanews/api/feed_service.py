@@ -52,7 +52,14 @@ def build_feed_response(
     users = UserRepository(session)
     user = users.get_by_external_key(user_id)
     if user is None:
-        raise LookupError(f"user {user_id!r} not found — seed demo users")
+        if user_id in ("demo-editor", "demo-okur", "demo-user-a", "demo-user-b"):
+            from curanews.api.routers.auth import ensure_demo_accounts
+
+            ensure_demo_accounts(session)
+            user = users.get_by_external_key(user_id)
+        if user is None:
+            raise LookupError(f"user {user_id!r} not found — seed demo users")
+
 
     query = feed_query(limit=limit)
     feed_cache = cache or FeedCache()
@@ -73,7 +80,66 @@ def build_feed_response(
     }
 
     candidates = list(session.scalars(select(Article)).all())
+    if not candidates:
+        import hashlib
+        import uuid
+        from curanews.db.models import Source
+
+        ed_source = session.scalars(select(Source).where(Source.name == "CuraNews Editör Masası")).first()
+        if not ed_source:
+            ed_source = Source(
+                name="CuraNews Editör Masası",
+                base_url="https://truncgil.com/",
+                kind="editorial",
+                enabled=True,
+                robots_respected=True,
+            )
+            session.add(ed_source)
+            session.flush()
+
+        initial_seeds = [
+            (
+                "CuraNews Canlı Yayında: Truncgil Teknoloji Altyapısıyla Akıllı Haber Akışı Başladı",
+                "gundem",
+                "Truncgil Teknoloji bünyesinde geliştirilen yeni nesil akıllı haber kürasyon ve editör masası platformu CuraNews resmi olarak canlı yayına başladı. Gündem, ekonomi, teknoloji ve spor başlıkları yapay zeka destekli akıllı bülten ile okurlara sunuluyor.",
+            ),
+            (
+                "Yapay Zeka ve Büyük Dil Modellerinde Yeni Atılımlar",
+                "teknoloji",
+                "Açık kaynaklı yapay zeka modelleri ve otonom yazılım asistanları geliştirici ekosisteminde yeni bir dönem başlatıyor. Yerli ve küresel teknoloji şirketleri inovasyon yatırımlarını artırıyor.",
+            ),
+            (
+                "Küresel Piyasalarda Faiz İndirimi Beklentisi ve Borsa Rallisi",
+                "ekonomi",
+                "Merkez bankalarının para politikası adımları öncesinde küresel hisse senedi piyasalarında ve yatırım fonlarında hareketlilik hız kazandı. Analistler dengeli portföy yönetimini öneriyor.",
+            ),
+            (
+                "Süper Lig'de Heyecan Dorukta: Haftanın Kritik Karşılaşmaları",
+                "spor",
+                "Lig maratonunda zirve yarışında kritik haftaya girildi. Takımların form durumları, sakatlık raporları ve taktiksel saha analizleri taraftarların odağında.",
+            ),
+        ]
+        for title, cat, body in initial_seeds:
+            u_hash = hashlib.sha256(title.encode("utf-8")).hexdigest()
+            art = Article(
+                id=uuid.uuid4(),
+                source_id=ed_source.id,
+                url=f"https://truncgil.com/curanews/article/{u_hash[:12]}",
+                url_hash=u_hash,
+                title=title,
+                body=body,
+                summary=body[:140],
+                content_hash=hashlib.sha256(body.encode("utf-8")).hexdigest(),
+                category=cat,
+                language="tr",
+                published_at=clock,
+            )
+            session.add(art)
+        session.commit()
+        candidates = list(session.scalars(select(Article)).all())
+
     inbox_candidates = [article for article in candidates if article.id not in stale_ids]
+
     ranked = CurationEngine(session).rank(
         user.id, inbox_candidates, top_k=limit, hide_read=False, now=clock
     )

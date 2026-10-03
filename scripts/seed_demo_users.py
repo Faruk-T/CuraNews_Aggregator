@@ -80,9 +80,13 @@ def main() -> int:
     factory = get_session_factory()
     session = factory()
     try:
+        from curanews.api.routers.auth import ensure_demo_accounts
+
+        ensure_demo_accounts(session)
         users = UserRepository(session)
         user_a = users.ensure_user("demo-user-a")
         user_b = users.ensure_user("demo-user-b")
+
 
         source = session.scalars(select(Source).where(Source.name == "example_news")).one_or_none()
         if source is None:
