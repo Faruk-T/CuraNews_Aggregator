@@ -31,13 +31,17 @@ from curanews.web.render import WEB_DIR
 CONTENT_SECURITY_POLICY = "; ".join(
     [
         "default-src 'self'",
-        "script-src 'self' https://www.googletagmanager.com",
+        "script-src 'self' https://www.googletagmanager.com "
+        "https://pagead2.googlesyndication.com https://www.google.com https://www.gstatic.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: https:",
         "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com "
-        "https://www.googletagmanager.com",
-        "frame-src https://www.youtube-nocookie.com https://player.vimeo.com",
+        "https://www.googletagmanager.com https://*.googlesyndication.com "
+        "https://*.doubleclick.net https://www.google.com",
+        "frame-src https://www.youtube-nocookie.com https://player.vimeo.com "
+        "https://googleads.g.doubleclick.net https://tpc.googlesyndication.com "
+        "https://www.google.com",
         "frame-ancestors 'self'",
         "base-uri 'self'",
         "form-action 'self'",

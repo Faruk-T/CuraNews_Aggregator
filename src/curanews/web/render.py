@@ -105,6 +105,10 @@ def head_tags(
         f'<link rel="canonical" href="{attr(canonical)}" />',
         f'<link rel="alternate" type="application/rss+xml" title="{SITE_NAME}" '
         f'href="{attr(base)}/rss.xml" />',
+        f'<link rel="sitemap" type="application/xml" title="Sitemap" '
+        f'href="{attr(base)}/sitemap.xml" />',
+        f'<link rel="sitemap" type="application/xml" title="News Sitemap" '
+        f'href="{attr(base)}/news-sitemap.xml" />',
         f'<link rel="icon" type="image/svg+xml" href="{attr(base)}/ui/favicon.svg" />',
         f'<meta property="og:site_name" content="{SITE_NAME}" />',
         '<meta property="og:locale" content="tr_TR" />',
@@ -123,6 +127,14 @@ def head_tags(
             '<meta name="google-site-verification" '
             f'content="{attr(settings.google_site_verification)}" />'
         )
+    pub_id = settings.adsense_pub_id.strip().removeprefix("ca-")
+    if pub_id.startswith("pub-"):
+        client = f"ca-{pub_id}"
+        tags.append(f'<meta name="curanews-adsense" content="{attr(pub_id)}" />')
+        tags.append(
+            f'<script async src="https://pagead2.googlesyndication.com/pagead/js/'
+            f'adsbygoogle.js?client={attr(client)}" crossorigin="anonymous"></script>'
+        )
     tags.extend(extra)
     return "\n    ".join(tags)
 
@@ -134,6 +146,8 @@ def organization_ld(base: str) -> dict[str, Any]:
         "name": SITE_NAME,
         "url": f"{base}/ui/",
         "logo": {"@type": "ImageObject", "url": f"{base}/ui/logo-512.png"},
+        "publishingPrinciples": f"{base}/kunye",
+        "description": SITE_DESCRIPTION,
     }
 
 
@@ -234,6 +248,7 @@ def page_shell(*, head: str, base: str, body: str, active_category: str | None =
           tüm hakları ilgili yayıncılara aittir.</p>
         <p>
           <a href="{attr(base)}/ui/">Ana sayfa</a> ·
+          <a href="{attr(base)}/kunye">Künye</a> ·
           <a href="{attr(base)}/rss.xml">RSS</a> ·
           <a href="{attr(base)}/sitemap.xml">Site haritası</a> · © {year}
         </p>

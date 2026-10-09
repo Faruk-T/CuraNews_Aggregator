@@ -409,6 +409,59 @@ def category_page(
     return _html(page_shell(head=head, base=base, body=body, active_category=slug))
 
 
+@router.get("/kunye", response_class=HTMLResponse)
+def masthead_page(request: Request) -> HTMLResponse:
+    base = public_base_url(request)
+    canonical = f"{base}/kunye"
+    editor = get_settings().editor_email or "faruk@curanews.com"
+    extra = [
+        json_ld(
+            {
+                "@context": "https://schema.org",
+                "@graph": [
+                    organization_ld(base),
+                    {
+                        "@type": "AboutPage",
+                        "name": f"{SITE_NAME} künye",
+                        "url": canonical,
+                        "inLanguage": "tr-TR",
+                        "isPartOf": {"@id": f"{base}/#organization"},
+                    },
+                ],
+            }
+        )
+    ]
+    head = head_tags(
+        title=f"Künye | {SITE_NAME}",
+        description="CuraNews yayın ilkeleri, kaynak politikası ve iletişim.",
+        canonical=canonical,
+        base=base,
+        extra=extra,
+    )
+    body = f"""
+        <article class="page-article">
+          <p class="page-kicker"><span class="badge-cat">Yayın</span></p>
+          <h1 class="page-title">Künye</h1>
+          <p class="page-lead">{attr(SITE_TAGLINE)}</p>
+          <div class="page-body">
+            <p><strong>{SITE_NAME}</strong>, resmi RSS ve Atom akışlarından derlenen
+            bir haber kürasyon sitesidir. Haberi yazan CuraNews değildir; başlık,
+            özet ve kapak görseli kaynak yayının kendi bülteninden alınır, okur
+            tam metin için orijinal adrese yönlendirilir.</p>
+            <p>Editör masasından yayımlanan imzalı yazılar CuraNews’e aittir ve
+            kartta “Editör” olarak işaretlenir.</p>
+            <p>Kaynaklar: Anadolu Ajansı, TRT Haber, NTV, CNN Türk, Hürriyet,
+            Habertürk, BBC Türkçe, DW Türkçe ve katalogdaki diğer resmi
+            yayıncılar. Tam liste <a href="{attr(base)}/rss.xml">RSS</a> ve
+            <a href="{attr(base)}/sitemap.xml">site haritası</a> üzerinden
+            izlenebilir.</p>
+            <p>Yayın ve düzeltme: <a href="mailto:{attr(editor)}">{attr(editor)}</a></p>
+          </div>
+        </article>
+    """
+    return _html(page_shell(head=head, base=base, body=body), max_age=3600)
+
+
 def _not_found(request: Request) -> HTMLResponse:
     base = public_base_url(request)
     head = head_tags(

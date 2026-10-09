@@ -88,6 +88,8 @@ def test_robots_txt(client: TestClient) -> None:
     assert "Disallow: /auth/" in text
     assert "Disallow: /editor/" in text
     assert "Sitemap: http://testserver/sitemap.xml" in text
+    assert "Sitemap: http://testserver/news-sitemap.xml" in text
+    assert "Googlebot-News" in text
 
 
 def test_ads_txt_is_absent_without_publisher_id(client: TestClient) -> None:
@@ -111,9 +113,10 @@ def test_sitemap_lists_only_own_urls(client: TestClient, session: Session) -> No
     assert root.tag.endswith("urlset")
 
     locs = [elem.text or "" for elem in root.iter() if elem.tag.endswith("loc")]
-    assert len(locs) == 1 + 7 + 3
+    assert len(locs) == 2 + 7 + 3
     assert all(loc.startswith("http://testserver/") for loc in locs)
     assert "http://testserver/ui/" in locs
+    assert "http://testserver/kunye" in locs
     assert "http://testserver/kategori/ekonomi" in locs
     article_locs = [loc for loc in locs if "/haber/" in loc]
     assert len(article_locs) == 3
@@ -139,3 +142,26 @@ def test_rss_xml(client: TestClient, session: Session) -> None:
     link = items[0].findtext("link") or ""
     assert link.startswith("http://testserver/haber/")
     assert "hurriyet.com.tr" not in link
+    source = items[0].find("source")
+    assert source is not None
+    assert "hurriyet.com.tr" in (source.get("url") or "")
+
+
+def test_news_sitemap_lists_recent_own_urls(client: TestClient, session: Session) -> None:
+    _seed_sample_articles(session)
+    res = client.get("/news-sitemap.xml")
+    assert res.status_code == 200
+    root = ET.fromstring(res.text)
+    assert root.tag.endswith("urlset")
+    locs = [elem.text or "" for elem in root.iter() if elem.tag.endswith("loc")]
+    assert len(locs) == 3
+    assert all(loc.startswith("http://testserver/haber/") for loc in locs)
+    assert any(elem.tag.endswith("publication_date") for elem in root.iter())
+
+
+def test_kunye_page(client: TestClient) -> None:
+    res = client.get("/kunye")
+    assert res.status_code == 200
+    assert "Künye" in res.text
+    assert "resmi RSS" in res.text
+    assert 'rel="canonical"' in res.text
