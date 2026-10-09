@@ -25,16 +25,31 @@ Defined in `src/curanews/scrapers/adapters/rss_catalog.py`:
 | `npr_news` | NPR | `https://feeds.npr.org/1001/rss.xml` |
 | `aljazeera_english` | Al Jazeera | `https://www.aljazeera.com/xml/rss/all.xml` |
 | `aa_guncel` | Anadolu Ajansı | `https://www.aa.com.tr/tr/rss/default?cat=guncel` |
+| `aa_ekonomi` | Anadolu Ajansı | `https://www.aa.com.tr/tr/rss/default?cat=ekonomi` |
+| `aa_spor` | Anadolu Ajansı | `https://www.aa.com.tr/tr/rss/default?cat=spor` |
+| `aa_saglik` | Anadolu Ajansı | `https://www.aa.com.tr/tr/rss/default?cat=saglik` |
+| `aa_teknoloji` | Anadolu Ajansı | `https://www.aa.com.tr/tr/rss/default?cat=bilim-teknoloji` |
 | `dw_turkish` | DW Türkçe | `https://rss.dw.com/xml/rss-tur-all` |
 | `trt_haber` | TRT Haber | `https://www.trthaber.com/sondakika.rss` |
+| `trt_ekonomi` | TRT Haber | `https://www.trthaber.com/ekonomi_articles.rss` |
 | `ahaber_home` | A Haber | `https://www.ahaber.com.tr/rss/anasayfa.xml` |
 | `ahaber_spor` | A Haber Spor | `https://www.ahaber.com.tr/rss/spor.xml` |
+| `ahaber_ekonomi` | A Haber | `https://www.ahaber.com.tr/rss/ekonomi.xml` |
 | `ntv_gundem` | NTV | `https://www.ntv.com.tr/gundem.rss` |
 | `ntv_spor` | NTV Spor | `https://www.ntv.com.tr/sporskor.rss` |
+| `ntv_ekonomi` | NTV | `https://www.ntv.com.tr/ekonomi.rss` |
+| `ntv_teknoloji` | NTV | `https://www.ntv.com.tr/teknoloji.rss` |
+| `ntv_saglik` | NTV | `https://www.ntv.com.tr/saglik.rss` |
+| `cnnturk_turkiye` | CNN Türk | `https://www.cnnturk.com/feed/rss/turkiye/news` |
+| `cnnturk_ekonomi` | CNN Türk | `https://www.cnnturk.com/feed/rss/ekonomi/news` |
 | `cnnturk_spor` | CNN Türk Spor | `https://www.cnnturk.com/feed/rss/spor/news` |
+| `hurriyet_gundem` | Hürriyet | `https://www.hurriyet.com.tr/rss/gundem` |
+| `hurriyet_ekonomi` | Hürriyet | `https://www.hurriyet.com.tr/rss/ekonomi` |
 | `hurriyet_spor` | Hürriyet Spor | `https://www.hurriyet.com.tr/rss/spor` |
+| `milliyet_gundem` | Milliyet | `https://www.milliyet.com.tr/rss/rssNew/gundemRss.xml` |
 | `milliyet_spor` | Milliyet Spor | `https://www.milliyet.com.tr/rss/rssNew/sporRss.xml` |
 | `haberturk` | Habertürk | `https://www.haberturk.com/rss` |
+| `haberturk_ekonomi` | Habertürk | `https://www.haberturk.com/rss/ekonomi.xml` |
 
 TRT Spor (`trtspor.com.tr`) public RSS yayınlamıyor; spor masası NTV Spor, A Haber Spor, Hürriyet/Milliyet/CNN Türk Spor ve TRT Haber ile doldurulur.
 

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import RedirectResponse
@@ -24,6 +25,7 @@ from curanews.api.routers import (
 )
 from curanews.api.urls import base_path
 from curanews.config import get_settings
+from curanews.ingestion.scheduler import IngestScheduler
 from curanews.web.render import WEB_DIR
 
 CONTENT_SECURITY_POLICY = "; ".join(
@@ -67,12 +69,23 @@ def _install_security_headers(app: FastAPI, *, hsts: bool) -> None:
 
 def create_app() -> FastAPI:
     settings = get_settings()
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        scheduler = IngestScheduler.from_settings(settings)
+        scheduler.start()
+        try:
+            yield
+        finally:
+            scheduler.stop()
+
     app = FastAPI(
         title=settings.app_name,
         version=__version__,
         description="CuraNews Aggregator REST API — Phase 4 (G16+).",
         docs_url=None if settings.is_prod else "/docs",
         redoc_url=None if settings.is_prod else "/redoc",
+        lifespan=lifespan,
     )
     _install_security_headers(app, hsts=settings.is_prod)
 

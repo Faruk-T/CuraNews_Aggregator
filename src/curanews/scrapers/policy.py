@@ -20,8 +20,16 @@ def user_agent() -> str:
 
 @lru_cache(maxsize=1)
 def allowed_hosts() -> frozenset[str]:
+    """Configured hosts plus every publisher already in the RSS catalog.
+
+    Compose files sometimes ship a stale ``SCRAPE_ALLOWLIST_HOSTS`` string;
+    catalog hosts must still be fetchable after a feed is added.
+    """
+    from curanews.scrapers.adapters.rss_catalog import RSS_ALLOWLIST_HOSTS
+
     raw = get_settings().scrape_allowlist_hosts
     hosts = {part.strip().lower() for part in raw.split(",") if part.strip()}
+    hosts.update(host.lower() for host in RSS_ALLOWLIST_HOSTS)
     return frozenset(hosts)
 
 
@@ -43,9 +51,7 @@ def assert_url_allowed(url: str) -> None:
         return
     host = urlparse(url).hostname or "?"
     allowed = ", ".join(sorted(allowed_hosts()))
-    raise HostNotAllowedError(
-        f"host {host!r} is not in scrape allowlist ({allowed})"
-    )
+    raise HostNotAllowedError(f"host {host!r} is not in scrape allowlist ({allowed})")
 
 
 def assert_concurrency_polite(value: int | None = None) -> int:

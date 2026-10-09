@@ -882,12 +882,31 @@ async function fetchMore() {
   state.fetchingMore = true;
   els.spinner.hidden = false;
   try {
-    const cat = state.category ? `&category=${encodeURIComponent(state.category)}` : "";
-    const res = await api(`/articles?offset=${state.remoteOffset}&limit=${PAGE_SIZE}${cat}`);
+    const fresh = [];
     const known = new Set(state.items.map((i) => i.id));
-    const fresh = (res.items || []).filter((i) => !known.has(i.id));
-    state.remoteOffset += PAGE_SIZE;
-    if (!res.items?.length) state.hasMoreRemote = false;
+    const cat = state.category ? `&category=${encodeURIComponent(state.category)}` : "";
+    let guard = 0;
+    while (fresh.length < PAGE_SIZE && state.hasMoreRemote && guard < 8) {
+      guard += 1;
+      const res = await api(`/articles?offset=${state.remoteOffset}&limit=${PAGE_SIZE}${cat}`);
+      const batch = res.items || [];
+      state.remoteOffset = (res.offset ?? state.remoteOffset) + batch.length;
+      const total = Number(res.total);
+      state.hasMoreRemote = typeof res.has_more === "boolean"
+        ? res.has_more
+        : Number.isFinite(total)
+          ? state.remoteOffset < total
+          : batch.length > 0;
+      if (!batch.length) {
+        state.hasMoreRemote = false;
+        break;
+      }
+      for (const item of batch) {
+        if (known.has(item.id)) continue;
+        known.add(item.id);
+        fresh.push(item);
+      }
+    }
     if (fresh.length) {
       state.items.push(...fresh);
       state.filtered.push(...fresh.filter(itemMatchesFilters));
@@ -895,7 +914,7 @@ async function fetchMore() {
       els.feedCount.textContent = `${state.filtered.length} haber`;
     }
   } catch {
-    state.hasMoreRemote = false;
+    // Keep hasMoreRemote so a dropped request can retry on the next scroll.
   } finally {
     state.fetchingMore = false;
     els.spinner.hidden = true;
@@ -953,7 +972,7 @@ async function loadFeed({ quiet = false, keepScroll = false } = {}) {
     state.items = data.items || [];
     state.readItems = data.read_items || [];
     state.graceSeconds = Number(data.inbox_grace_seconds) || 20 * 60;
-    state.remoteOffset = FEED_LIMIT;
+    state.remoteOffset = 0;
     state.hasMoreRemote = true;
     setupBreaking(state.items);
     renderFeed();
@@ -995,9 +1014,32 @@ function setCategory(slug, { push = true } = {}) {
     else url.searchParams.delete("kategori");
     history.replaceState(history.state, "", url);
   }
-  state.hasMoreRemote = true;
-  state.remoteOffset = FEED_LIMIT;
-  if (state.items.length) renderFeed();
+  if (state.view !== "all") {
+    if (state.items.length) renderFeed();
+    return;
+  }
+  if (slug) loadCategoryStream(slug);
+  else loadFeed({ quiet: true });
+}
+
+async function loadCategoryStream(slug) {
+  els.skeleton.hidden = false;
+  els.scrollEnd.hidden = true;
+  try {
+    const res = await api(
+      `/articles?offset=0&limit=${FEED_LIMIT}&category=${encodeURIComponent(slug)}`,
+    );
+    state.items = res.items || [];
+    state.remoteOffset = state.items.length;
+    state.hasMoreRemote = typeof res.has_more === "boolean"
+      ? res.has_more
+      : state.remoteOffset < Number(res.total || 0);
+    renderFeed();
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    els.skeleton.hidden = true;
+  }
 }
 
 // ----------------------------------------------------------------- editor

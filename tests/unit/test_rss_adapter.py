@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-from curanews.config import Settings
 from curanews.scrapers.adapters import get_adapter, list_adapters, load_rss_fixture, parse_feed_xml
 from curanews.scrapers.adapters.rss_catalog import DEFAULT_RSS_FEEDS, RSS_ALLOWLIST_HOSTS, RssFeed
 from curanews.scrapers.adapters.rss_client import RssCatalogAdapter
@@ -106,19 +105,29 @@ def test_registry_includes_rss() -> None:
     assert get_adapter("rss").kind == "rss"
 
 
-def test_default_allowlist_covers_every_catalog_host(monkeypatch: pytest.MonkeyPatch) -> None:
-    default = Settings.model_fields["scrape_allowlist_hosts"].default
-    assert isinstance(default, str)
-    allowed = {part.strip() for part in default.split(",") if part.strip()}
-    missing = set(RSS_ALLOWLIST_HOSTS) - allowed
-    assert not missing, f"RSS hosts missing from default allowlist: {missing}"
+def test_catalog_covers_turkish_desks() -> None:
+    keys = {feed.key for feed in DEFAULT_RSS_FEEDS}
+    for key in (
+        "aa_ekonomi",
+        "aa_saglik",
+        "ntv_teknoloji",
+        "hurriyet_gundem",
+        "cnnturk_turkiye",
+        "haberturk_ekonomi",
+    ):
+        assert key in keys
+    assert len(DEFAULT_RSS_FEEDS) >= 30
 
-    monkeypatch.setenv("SCRAPE_ALLOWLIST_HOSTS", default)
+
+def test_default_allowlist_covers_every_catalog_host(monkeypatch: pytest.MonkeyPatch) -> None:
     from curanews.config import get_settings
     from curanews.scrapers import policy as policy_mod
 
+    monkeypatch.setenv("SCRAPE_ALLOWLIST_HOSTS", "example.com")
     get_settings.cache_clear()
     policy_mod.allowed_hosts.cache_clear()
+    missing = set(RSS_ALLOWLIST_HOSTS) - policy_mod.allowed_hosts()
+    assert not missing, f"RSS hosts missing from effective allowlist: {missing}"
     assert is_url_allowed(DEFAULT_RSS_FEEDS[0].url)
     get_settings.cache_clear()
     policy_mod.allowed_hosts.cache_clear()

@@ -25,7 +25,7 @@ poetry run python scripts/refresh_news.py
 poetry run python scripts/run_ingestion.py --adapter rss
 ```
 
-`refresh_news.py` pulls the public RSS catalog (BBC, Guardian, NPR, Al Jazeera, AA) (pass `--with-demo` to also seed the local demo users A/B and example stories; production never does). A second `run_ingestion.py --adapter rss` should report `"inserted": 0` and `"duplicates" > 0`.
+`refresh_news.py` pulls the full public RSS catalog (AA, TRT, NTV, CNN Türk, Hürriyet, Habertürk, BBC, Guardian, …). Pass `--with-demo` to also seed the local demo users A/B and example stories; production never does. The API scheduler runs the same pass every `INGEST_INTERVAL_MINUTES` (production default 10). A second `run_ingestion.py --adapter rss` should report `"inserted": 0` and `"duplicates" > 0`. `/health` exposes `last_ingest_at` and `last_ingest_inserted` so a silent fetch failure is visible.
 
 ## Modules
 

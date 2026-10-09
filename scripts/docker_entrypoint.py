@@ -51,9 +51,17 @@ def main() -> int:
         subprocess.run([sys.executable, str(ROOT / "scripts" / script)], cwd=ROOT, check=False)
 
     if os.environ.get("CURANEWS_BOOTSTRAP", "0") == "1":
-        print("Bootstrapping sources + RSS…", flush=True)
-        for script in ("seed_sources.py", "refresh_news.py"):
-            subprocess.run([sys.executable, str(ROOT / "scripts" / script)], cwd=ROOT, check=False)
+        print("Bootstrapping sources…", flush=True)
+        subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "seed_sources.py")],
+            cwd=ROOT,
+            check=False,
+        )
+        print(
+            "RSS refresh runs in the API process (INGEST_INTERVAL_MINUTES), "
+            "not in this entrypoint — so /health can answer before feeds finish.",
+            flush=True,
+        )
 
     print("Starting uvicorn on 0.0.0.0:8000…", flush=True)
     os.execvp(

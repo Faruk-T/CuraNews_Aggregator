@@ -28,7 +28,13 @@ def list_articles(
         session, limit=limit, offset=offset, source=source, category=category, q=q
     )
     items = [article_to_item(session, row) for row in rows]
-    return ArticleListResponse(total=total, limit=limit, offset=offset, items=items)
+    return ArticleListResponse(
+        total=total,
+        limit=limit,
+        offset=offset,
+        items=items,
+        has_more=offset + len(items) < total,
+    )
 
 
 @router.get("/{article_id}", response_model=ArticleItem)

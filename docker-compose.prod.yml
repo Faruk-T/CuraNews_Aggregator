@@ -50,6 +50,8 @@ services:
       FEED_CACHE_TTL_SECONDS: 180
       READ_INBOX_GRACE_SECONDS: 1200
       CURANEWS_BOOTSTRAP: "1"
+      INGEST_INTERVAL_MINUTES: ${INGEST_INTERVAL_MINUTES:-10}
+      INGEST_MAX_ITEMS: ${INGEST_MAX_ITEMS:-2000}
       PII_HASH_SALT: ${PII_HASH_SALT:?set PII_HASH_SALT in .env}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ random chars) in .env}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
@@ -70,7 +72,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 8
-      start_period: 45s
+      start_period: 180s
     networks:
       - curanews_prod_network
 

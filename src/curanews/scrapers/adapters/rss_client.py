@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Literal
 
 import httpx
@@ -46,19 +47,26 @@ class RssCatalogAdapter:
         if self.use_fixture:
             return load_rss_fixture()[:cap]
 
-        buckets: list[list[RawArticleDraft]] = []
-        for feed in self.feeds:
-            try:
-                xml = self._download(feed)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("rss fetch failed feed=%s error=%s", feed.key, exc)
-                continue
-            rows = parse_feed_xml(xml, feed=feed)
-            logger.info("rss parsed feed=%s items=%s", feed.key, len(rows))
-            if rows:
-                buckets.append(rows)
+        parsed: dict[str, list[RawArticleDraft]] = {}
+        workers = min(4, max(1, len(self.feeds)))
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(self._download_parse, feed): feed for feed in self.feeds}
+            for future in as_completed(futures):
+                feed = futures[future]
+                try:
+                    rows = future.result()
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("rss fetch failed feed=%s error=%s", feed.key, exc)
+                    continue
+                logger.info("rss parsed feed=%s items=%s", feed.key, len(rows))
+                if rows:
+                    parsed[feed.key] = rows
 
+        buckets = [parsed[feed.key] for feed in self.feeds if feed.key in parsed]
         return _round_robin(buckets, cap)
+
+    def _download_parse(self, feed: RssFeed) -> list[RawArticleDraft]:
+        return parse_feed_xml(self._download(feed), feed=feed)
 
     def _download(self, feed: RssFeed) -> str:
         assert_url_allowed(feed.url)
@@ -67,21 +75,30 @@ class RssCatalogAdapter:
         return _http_get_xml(feed.url, source_key=feed.key)
 
 
+_BROWSER_UA = (
+    "Mozilla/5.0 (compatible; CuraNewsBot/1.0; +https://truncgil.com/curanews) "
+    "AppleWebKit/537.36 (KHTML, like Gecko)"
+)
+
+
 def _http_get_xml(url: str, *, source_key: str) -> str:
     settings = get_settings()
-    headers = {
-        "User-Agent": user_agent(),
-        "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
-    }
+    accept = "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8"
 
     def _request() -> str:
-        with httpx.Client(timeout=20.0, follow_redirects=True, headers=headers) as client:
-            response = client.get(url)
-            if response.status_code >= 400:
-                err = RuntimeError(f"HTTP {response.status_code} from RSS {url}")
-                err.status_code = response.status_code  # type: ignore[attr-defined]
-                raise err
-            return response.text
+        last_error: RuntimeError | None = None
+        for agent in (user_agent(), _BROWSER_UA):
+            headers = {"User-Agent": agent, "Accept": accept}
+            with httpx.Client(timeout=20.0, follow_redirects=True, headers=headers) as client:
+                response = client.get(url)
+            if response.status_code < 400:
+                return response.text
+            last_error = RuntimeError(f"HTTP {response.status_code} from RSS {url}")
+            last_error.status_code = response.status_code  # type: ignore[attr-defined]
+            if response.status_code not in {401, 403, 429}:
+                raise last_error
+        assert last_error is not None
+        raise last_error
 
     return call_with_backoff(
         _request,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import threading
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -15,7 +16,9 @@ from curanews.api.deps import get_db
 from curanews.api.schemas import ArticleItem, EditorArticleCreate
 from curanews.api.services import article_to_item
 from curanews.api.urls import article_path, public_base_url, safe_http_url, video_embed_url
+from curanews.config import get_settings
 from curanews.db.models import Article, Source, User
+from curanews.ingestion.scheduler import IngestScheduler
 from curanews.nlp.categorizer import (
     calculate_read_time,
     detect_breaking_news,
@@ -111,3 +114,15 @@ def create_editor_article(
     session.refresh(article)
 
     return article_to_item(session, article)
+
+
+@router.post("/ingest")
+def trigger_ingest(current_user: User = Depends(require_editor)) -> dict[str, str]:
+    """Kick a background RSS refresh without blocking the editor request."""
+    del current_user
+
+    def _run() -> None:
+        IngestScheduler.from_settings(get_settings()).tick()
+
+    threading.Thread(target=_run, name="rss-refresh-manual", daemon=True).start()
+    return {"status": "accepted"}

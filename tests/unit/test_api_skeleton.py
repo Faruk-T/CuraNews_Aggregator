@@ -91,6 +91,8 @@ def test_health_returns_200(client: TestClient) -> None:
     assert body["status"] in {"ok", "degraded"}
     assert "database" in body
     assert "redis" in body
+    assert "ingest_interval_minutes" in body
+    assert "last_ingest_status" in body
 
 
 def test_openapi_lists_core_paths(client: TestClient) -> None:
@@ -110,7 +112,9 @@ def test_articles_and_feed_and_reads(client: TestClient, session: Session) -> No
 
     listed = client.get("/articles")
     assert listed.status_code == 200
-    assert listed.json()["total"] >= 1
+    body = listed.json()
+    assert body["total"] >= 1
+    assert body["has_more"] is (body["offset"] + len(body["items"]) < body["total"])
 
     detail = client.get(f"/articles/{article.id}")
     assert detail.status_code == 200

@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
 
 from curanews.cache.feed_cache import FeedCache
+from curanews.db.models import Article
 from curanews.db.repository import ArticleRepository, SourceRepository
 from curanews.ingestion.cleaning import clean_raw_draft
 from curanews.ingestion.normalize import article_to_persistence_kwargs, default_base_url
@@ -25,6 +26,7 @@ class IngestionStats:
     inserted: int = 0
     duplicates: int = 0
     skipped_invalid: int = 0
+    failed: int = 0
     feed_keys_invalidated: int = 0
     entities_linked: int = 0
 
@@ -40,6 +42,7 @@ class IngestionPipeline:
     session: Session
     invalidate_feed_cache: bool = True
     run_nlp: bool = True
+    commit_every: int | None = None
     _sources: SourceRepository = field(init=False)
     _articles: ArticleRepository = field(init=False)
     _feed_cache: FeedCache | None = field(init=False)
@@ -71,27 +74,38 @@ class IngestionPipeline:
                 )
                 continue
 
-            row = self._articles.insert_article(source=source, **article_to_persistence_kwargs(article))
+            try:
+                with self.session.begin_nested():
+                    row = self._articles.insert_article(
+                        source=source, **article_to_persistence_kwargs(article)
+                    )
+                    linked = self._tag(row) if row is not None else 0
+            except Exception:  # noqa: BLE001
+                stats.failed += 1
+                logger.exception(
+                    "ingestion failed source=%s url=%s", adapter.source_id, article.url
+                )
+                continue
+
             if row is None:
                 stats.duplicates += 1
-                logger.info(
-                    "ingestion duplicate source=%s url=%s",
-                    adapter.source_id,
-                    article.url,
-                )
-            else:
-                stats.inserted += 1
-                logger.info(
-                    "ingestion inserted source=%s article_id=%s",
-                    adapter.source_id,
-                    row.id,
-                )
-                if self.run_nlp:
-                    from curanews.nlp.tagging import tag_article
+                logger.debug("ingestion duplicate source=%s url=%s", adapter.source_id, article.url)
+                continue
 
-                    stats.entities_linked += tag_article(self.session, row)
+            stats.inserted += 1
+            stats.entities_linked += linked
+            logger.info("ingestion inserted source=%s article_id=%s", adapter.source_id, row.id)
+            if self.commit_every and stats.inserted % self.commit_every == 0:
+                self.session.commit()
 
         if stats.inserted and self._feed_cache is not None:
             stats.feed_keys_invalidated = self._feed_cache.invalidate_all()
 
         return stats
+
+    def _tag(self, row: Article) -> int:
+        if not self.run_nlp:
+            return 0
+        from curanews.nlp.tagging import tag_article
+
+        return tag_article(self.session, row)

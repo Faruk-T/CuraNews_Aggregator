@@ -66,6 +66,7 @@ PAYLOAD = {
 def test_editor_endpoint_requires_login(client: TestClient) -> None:
     res = client.post("/editor/articles", json=PAYLOAD)
     assert res.status_code == 401
+    assert client.post("/editor/ingest").status_code == 401
 
 
 def test_reader_cannot_publish(client: TestClient, session: Session) -> None:

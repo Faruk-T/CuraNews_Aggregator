@@ -15,6 +15,10 @@ class HealthResponse(BaseModel):
     version: str
     database: Literal["up", "down"] = "down"
     redis: Literal["up", "down"] = "down"
+    ingest_interval_minutes: int = 0
+    last_ingest_at: datetime | None = None
+    last_ingest_inserted: int | None = None
+    last_ingest_status: str | None = None
 
 
 class ArticleItem(BaseModel):
@@ -52,6 +56,7 @@ class ArticleListResponse(BaseModel):
     limit: int
     offset: int
     items: list[ArticleItem]
+    has_more: bool = False
 
 
 class FeedResponse(BaseModel):

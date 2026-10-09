@@ -65,6 +65,21 @@ class Settings(BaseSettings):
         description="Comma-separated hostnames permitted for outbound fetches.",
     )
 
+    ingest_interval_minutes: int = Field(
+        default=0,
+        ge=0,
+        le=24 * 60,
+        description=(
+            "Minutes between background RSS refreshes run by the API. "
+            "0 disables in dev/test; production treats 0 as 10."
+        ),
+    )
+    ingest_max_items: int = Field(
+        default=2000,
+        ge=1,
+        description="Upper bound on RSS items fetched per refresh across all feeds.",
+    )
+
     news_api_key: str = Field(
         default="",
         description="GNews-compatible API key (Issue #8). Empty = offline fixture.",

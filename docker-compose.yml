@@ -44,8 +44,9 @@ services:
       API_PORT: 8000
       FEED_CACHE_TTL_SECONDS: 120
       READ_INBOX_GRACE_SECONDS: 1200
-      # First boot: seed sources + pull RSS + demo users A/B
+      # First boot: seed sources + pull RSS
       CURANEWS_BOOTSTRAP: "1"
+      INGEST_INTERVAL_MINUTES: "15"
       PII_HASH_SALT: change-me-in-local-only
       SCRAPE_ALLOWLIST_HOSTS: "example.com,gnews.io,localhost,127.0.0.1,feeds.bbci.co.uk,www.theguardian.com,feeds.npr.org,www.aljazeera.com,rss.dw.com,www.aa.com.tr,www.trthaber.com,www.ahaber.com.tr,www.ntv.com.tr,www.cnnturk.com,www.hurriyet.com.tr,www.milliyet.com.tr,www.haberturk.com"
       SCRAPE_USER_AGENT: CuraNewsBot/0.1 (+https://github.com/Faruk-T/CuraNews_Aggregator)
@@ -59,7 +60,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 8
-      start_period: 90s
+      start_period: 180s
 
 volumes:
   curanews_pg_data:
